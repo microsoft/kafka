@@ -24,7 +24,7 @@ public class KafkaProperties {
     public static final int CONNECTION_TIMEOUT = 100000;
     public static final String TOPIC2 = "topic2";
     public static final String TOPIC3 = "topic3";
-    public static final String CLIENT_ID = "SimpleConsumerDemoClient";
+    public static final String CLIENT_ID = "SimpleConsumerDemoClient_1";
 
     private KafkaProperties() {}
 }

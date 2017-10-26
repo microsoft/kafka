@@ -218,6 +218,11 @@ public abstract class AbstractLegacyRecordBatch extends AbstractRecordBatch impl
             return Collections.<Record>singletonList(this).iterator();
     }
 
+    @Override
+    public Iterator<Record> streamingIterator(BufferSupplier bufferSupplier) {
+        return iterator();
+    }
+
     static void writeHeader(ByteBuffer buffer, long offset, int size) {
         buffer.putLong(offset);
         buffer.putInt(size);

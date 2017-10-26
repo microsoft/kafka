@@ -224,6 +224,12 @@ public class FileLogInputStream implements LogInputStream<FileLogInputStream.Fil
         }
 
         @Override
+        public Iterator<Record> streamingIterator(BufferSupplier bufferSupplier) {
+            loadUnderlyingRecordBatch();
+            return underlying.streamingIterator(bufferSupplier);
+        }
+
+        @Override
         public boolean isValid() {
             loadUnderlyingRecordBatch();
             return underlying.isValid();

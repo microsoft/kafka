@@ -17,6 +17,7 @@
 package kafka.server
 
 import java.io.{File, IOException}
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
@@ -39,6 +40,8 @@ import org.apache.kafka.common.requests.{LeaderAndIsrRequest, PartitionState, St
 import org.apache.kafka.common.requests.ProduceResponse.PartitionResponse
 import org.apache.kafka.common.utils.Time
 import org.apache.kafka.common.requests.FetchRequest.PartitionData
+import org.apache.kafka.common.utils.Utils
+import org.apache.kafka.common.record.BufferSupplier
 
 import scala.collection._
 import scala.collection.JavaConverters._
@@ -139,6 +142,8 @@ class ReplicaManager(val config: KafkaConfig,
   private val isrChangeSet: mutable.Set[TopicPartition] = new mutable.HashSet[TopicPartition]()
   private val lastIsrChangeMs = new AtomicLong(System.currentTimeMillis())
   private val lastIsrPropagationMs = new AtomicLong(System.currentTimeMillis())
+
+  private var decompressionBufferSupplier = BufferSupplier.create();
 
   val delayedProducePurgatory = DelayedOperationPurgatory[DelayedProduce](
     purgatoryName = "Produce", localBrokerId, config.producerPurgatoryPurgeIntervalRequests)
@@ -558,7 +563,8 @@ class ReplicaManager(val config: KafkaConfig,
                     hardMaxBytesLimit: Boolean,
                     fetchInfos: Seq[(TopicPartition, PartitionData)],
                     quota: ReplicaQuota = UnboundedQuota,
-                    responseCallback: Seq[(TopicPartition, FetchPartitionData)] => Unit) {
+                    responseCallback: Seq[(TopicPartition, FetchPartitionData)] => Unit,
+                    eventPattern: String = null) {
     val isFromFollower = replicaId >= 0
     val fetchOnlyFromLeader: Boolean = replicaId != Request.DebuggingConsumerId
     val fetchOnlyCommitted: Boolean = ! Request.isValidBrokerId(replicaId)
@@ -571,7 +577,8 @@ class ReplicaManager(val config: KafkaConfig,
       fetchMaxBytes = fetchMaxBytes,
       hardMaxBytesLimit = hardMaxBytesLimit,
       readPartitionInfo = fetchInfos,
-      quota = quota)
+      quota = quota,
+      eventPattern)
 
     // if the fetch comes from the follower,
     // update its corresponding log end offset
@@ -624,7 +631,8 @@ class ReplicaManager(val config: KafkaConfig,
                        fetchMaxBytes: Int,
                        hardMaxBytesLimit: Boolean,
                        readPartitionInfo: Seq[(TopicPartition, PartitionData)],
-                       quota: ReplicaQuota): Seq[(TopicPartition, LogReadResult)] = {
+                       quota: ReplicaQuota,
+                       eventPattern: String = null): Seq[(TopicPartition, LogReadResult)] = {
 
     def read(tp: TopicPartition, fetchInfo: PartitionData, limitBytes: Int, minOneMessage: Boolean): LogReadResult = {
       val offset = fetchInfo.fetchOffset
@@ -680,6 +688,48 @@ class ReplicaManager(val config: KafkaConfig,
           case None =>
             error(s"Leader for partition $tp does not have a local log")
             FetchDataInfo(LogOffsetMetadata.UnknownOffsetMetadata, MemoryRecords.EMPTY)
+        }
+
+        println("***************************Go inside read*******************************");
+
+        var batchs = logReadInfo.records.batches().iterator()
+        while(batchs.hasNext()){
+          var currentBatch = batchs.next();
+          var records = currentBatch.streamingIterator(decompressionBufferSupplier);
+          while(records.hasNext())
+          {
+            var record = records.next();
+            var valueByteArray = Utils.toArray(record.key());
+            for( a <- 0 to (valueByteArray.length - 1)) {
+              println("********************************** record.key() = %d ************************".format(valueByteArray(a)));
+            }
+          }
+        }
+
+        while (batchs.hasNext()) {
+          println("********************************** batchs.hasNext() ************************");
+          var currentBatch = batchs.next();
+          var records = currentBatch.streamingIterator(decompressionBufferSupplier);
+          while (records.hasNext()) {
+            println("********************************** record.hasNext() ************************");
+            var record = records.next();
+            var valueByteArray = Utils.toArray(record.key());
+            for (a <- 0 to (valueByteArray.length - 1)) {
+              println("********************************** record.key() = %d ************************".format(valueByteArray(a)));
+            }
+
+            var key = new String(valueByteArray, StandardCharsets.UTF_8);
+            println("********************************** record.key() = %s ************************".format(key));
+
+            if (eventPattern != null) {
+              println("***************************event pattern not equal to null*******************************");
+              var eventPatternRegex = eventPattern.r;
+              var records = logReadInfo.records.batches().iterator();
+              if (!eventPatternRegex.findFirstIn(key.toString).isDefined) {
+                records.removes(record.sizeInBytes());
+              }
+            }
+          }
         }
 
         LogReadResult(info = logReadInfo,

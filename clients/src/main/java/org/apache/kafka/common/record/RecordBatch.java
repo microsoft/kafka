@@ -17,6 +17,7 @@
 package org.apache.kafka.common.record;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
 
 /**
  * A record batch is a container for records. In old versions of the record format (versions 0 and 1),
@@ -199,5 +200,7 @@ public interface RecordBatch extends Iterable<Record> {
      * @return The leader epoch or -1 if it is unknown
      */
     int partitionLeaderEpoch();
+
+    Iterator<Record> streamingIterator(BufferSupplier decompressionBufferSupplier);
 
 }

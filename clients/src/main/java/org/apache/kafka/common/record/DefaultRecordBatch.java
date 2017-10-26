@@ -19,6 +19,7 @@ package org.apache.kafka.common.record;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.utils.ByteBufferInputStream;
 import org.apache.kafka.common.utils.ByteUtils;
+import org.apache.kafka.common.utils.CloseableIterator;
 import org.apache.kafka.common.utils.Crc32;
 import org.apache.kafka.common.utils.Utils;
 
@@ -202,6 +203,11 @@ public class DefaultRecordBatch extends AbstractRecordBatch implements MutableRe
         return buffer.getInt(PARTITION_LEADER_EPOCH_OFFSET);
     }
 
+    private CloseableIterator<Record> compressedIterator(BufferSupplier bufferSupplier) {
+        // No needed right now
+        return null;
+    }
+
     private Iterator<Record> compressedIterator() {
         ByteBuffer buffer = this.buffer.duplicate();
         buffer.position(RECORDS_OFFSET);
@@ -233,7 +239,7 @@ public class DefaultRecordBatch extends AbstractRecordBatch implements MutableRe
         return records.iterator();
     }
 
-    private Iterator<Record> uncompressedIterator() {
+    private CloseableIterator<Record> uncompressedIterator() {
         final ByteBuffer buffer = this.buffer.duplicate();
         final Long logAppendTime = timestampType() == TimestampType.LOG_APPEND_TIME ? maxTimestamp() : null;
         final long baseOffset = baseOffset();
@@ -243,7 +249,7 @@ public class DefaultRecordBatch extends AbstractRecordBatch implements MutableRe
         buffer.position(RECORDS_OFFSET);
         final int totalRecords = count();
 
-        return new Iterator<Record>() {
+        return new CloseableIterator<Record>() {
             int readRecords = 0;
 
             @Override
@@ -261,6 +267,22 @@ public class DefaultRecordBatch extends AbstractRecordBatch implements MutableRe
             public void remove() {
                 throw new UnsupportedOperationException();
             }
+
+            @Override
+            public void removes(int length) {
+                int startPoint = buffer.position() - length;
+                int index = startPoint;
+                for (int i = buffer.position(); i < buffer.limit(); i++) {
+                    buffer.put(index++, buffer.get(i));
+                    buffer.put(i, (byte) 0);
+                }
+                buffer.position(startPoint);
+            }
+
+            @Override
+            public void close(){
+                //Implement in future
+            }
         };
     }
 
@@ -268,6 +290,14 @@ public class DefaultRecordBatch extends AbstractRecordBatch implements MutableRe
     public Iterator<Record> iterator() {
         if (isCompressed())
             return compressedIterator();
+        else
+            return uncompressedIterator();
+    }
+
+    @Override
+    public CloseableIterator<Record> streamingIterator(BufferSupplier bufferSupplier) {
+        if (isCompressed())
+            return compressedIterator(bufferSupplier);
         else
             return uncompressedIterator();
     }

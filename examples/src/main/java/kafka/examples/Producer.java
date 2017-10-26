@@ -42,7 +42,7 @@ public class Producer extends Thread {
 
     public void run() {
         int messageNo = 1;
-        while (true) {
+        while (messageNo < 5) {
             String messageStr = "Message_" + messageNo;
             long startTime = System.currentTimeMillis();
             if (isAsync) { // Send asynchronously

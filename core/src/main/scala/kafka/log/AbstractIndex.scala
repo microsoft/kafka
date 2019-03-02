@@ -17,7 +17,7 @@
 
 package kafka.log
 
-import java.io.{File, RandomAccessFile}
+import java.io.{File, IOException, RandomAccessFile}
 import java.nio.{ByteBuffer, MappedByteBuffer}
 import java.nio.channels.FileChannel
 import java.nio.file.Files
@@ -143,10 +143,34 @@ abstract class AbstractIndex[K, V](@volatile var file: File, val baseOffset: Lon
    * @throws IOException if rename fails
    */
   def renameTo(f: File) {
-    try{ 
-      closeHandler()
-      Utils.atomicMoveWithFallback(file.toPath, f.toPath)
-    } 
+    try {
+      if(OperatingSystem.IS_WINDOWS) {
+        inLock(lock) {
+          val position = if (this.mmap == null) 0 else this.mmap.position()
+          logger.info("Renaming memory map file for windows")
+          if(this.mmap != null) {
+            logger.info("AzPubSub - Performing safe force unmap for windows")
+            safeForceUnmap()
+          }
+
+          Utils.atomicMoveWithFallback(file.toPath, f.toPath)
+
+          if (!f.getName.endsWith(Log.DeletedFileSuffix)) {
+            val toFile = new RandomAccessFile(f, "rw")
+            try {
+              logger.info("Re-pointing the memory mapped file to new file for windows")
+              val toFileLength = toFile.length()
+              this.mmap = toFile.getChannel.map(FileChannel.MapMode.READ_WRITE, 0, toFileLength)
+              this.mmap.position(position)
+            } finally {
+              CoreUtils.swallow(toFile.close(), this)
+            }
+          }
+        }
+      } else {
+        Utils.atomicMoveWithFallback(file.toPath, f.toPath)
+      }
+    }
     finally file = f
   }
 
@@ -195,6 +219,7 @@ abstract class AbstractIndex[K, V](@volatile var file: File, val baseOffset: Lon
   /** Close the index */
   def close() {
     trimToValidSize()
+    closeHandler()
   }
 
   def closeHandler(): Unit = {

@@ -24,7 +24,7 @@ import java.nio.file.{Files, StandardOpenOption}
 import kafka.utils.{Logging, nonthreadsafe}
 import org.apache.kafka.common.KafkaException
 import org.apache.kafka.common.requests.FetchResponse.AbortedTransaction
-import org.apache.kafka.common.utils.Utils
+import org.apache.kafka.common.utils.{OperatingSystem, Utils}
 
 import scala.collection.mutable.ListBuffer
 
@@ -102,12 +102,28 @@ class TransactionIndex(val startOffset: Long, @volatile var file: File) extends 
   }
 
   def renameTo(f: File): Unit = {
-    try {
-      if (file.exists) {
-        channel.close()
-        Utils.atomicMoveWithFallback(file.toPath, f.toPath)
+    if(OperatingSystem.IS_WINDOWS) {
+
+      info("Closing channel and opening it for windows")
+      close()
+      try {
+        if (file.exists) {
+          Utils.atomicMoveWithFallback(file.toPath, f.toPath)
+        }
+      } finally {
+        file = f
+        if (!f.getName.endsWith(Log.DeletedFileSuffix)) {
+          openChannel()
+        }
       }
-    } finally file = f
+
+    } else {
+      try {
+        if (file.exists) {
+          Utils.atomicMoveWithFallback(file.toPath, f.toPath)
+        }
+      } finally file = f
+    }
   }
 
   def truncateTo(offset: Long): Unit = {

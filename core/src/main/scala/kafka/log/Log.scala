@@ -576,7 +576,6 @@ class Log(@volatile var dir: File,
     lock synchronized {
       maybeHandleIOException(s"Error while renaming dir for $topicPartition in log dir ${dir.getParent}") {
         val renamedDir = new File(dir.getParent, name)
-        closeHandlers()
         Utils.atomicMoveWithFallback(dir.toPath, renamedDir.toPath)
         if (renamedDir != dir) {
           dir = renamedDir
@@ -1617,6 +1616,7 @@ class Log(@volatile var dir: File,
    * @throws IOException if the file can't be renamed and still exists
    */
   private def asyncDeleteSegment(segment: LogSegment) {
+    segment.close()
     segment.changeFileSuffixes("", Log.DeletedFileSuffix)
     def deleteSeg() {
       info(s"Deleting segment ${segment.baseOffset}")
@@ -1656,6 +1656,8 @@ class Log(@volatile var dir: File,
    */
   private[log] def replaceSegments(newSegment: LogSegment, oldSegments: Seq[LogSegment], isRecoveredSwapFile: Boolean = false) {
     lock synchronized {
+      val existingOldSegments = oldSegments.filter(seg => segments.containsKey(seg.baseOffset))
+
       checkIfMemoryMappedBufferClosed()
       // need to do this in two phases to be crash safe AND do the delete asynchronously
       // if we crash in the middle of this we complete the swap in loadSegments()
@@ -1664,7 +1666,7 @@ class Log(@volatile var dir: File,
       addSegment(newSegment)
 
       // delete the old files
-      for (seg <- oldSegments) {
+      for (seg <- existingOldSegments) {
         // remove the index entry
         if (seg.baseOffset != newSegment.baseOffset)
           segments.remove(seg.baseOffset)

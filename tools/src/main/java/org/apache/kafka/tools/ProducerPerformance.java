@@ -61,6 +61,7 @@ public class ProducerPerformance {
             String payloadFilePath = res.getString("payloadFile");
             String transactionalId = res.getString("transactionalId");
             boolean shouldPrintMetrics = res.getBoolean("printMetrics");
+            boolean shouldKeyValue = res.getBoolean("keyValue");
             long transactionDurationMs = res.getLong("transactionDurationMs");
             boolean transactionsEnabled =  0 < transactionDurationMs;
 
@@ -132,11 +133,15 @@ public class ProducerPerformance {
                     transactionStartTime = System.currentTimeMillis();
                 }
 
-
                 if (payloadFilePath != null) {
                     payload = payloadByteList.get(random.nextInt(payloadByteList.size()));
                 }
-                record = new ProducerRecord<>(topicName, payload);
+                if(shouldKeyValue) {
+                    String key = "Device" + random.nextInt(5000);
+                    record = new ProducerRecord<>(topicName, key.getBytes(),payload);
+                } else {
+                    record = new ProducerRecord<>(topicName, payload);
+                }
 
                 long sendStartMs = System.currentTimeMillis();
                 Callback cb = stats.nextCompletion(sendStartMs, payload.length, stats);
@@ -272,6 +277,14 @@ public class ProducerPerformance {
                 .metavar("PRINT-METRICS")
                 .dest("printMetrics")
                 .help("print out metrics at the end of the test.");
+
+        parser.addArgument("--key-value")
+                .action(storeTrue())
+                .type(Boolean.class)
+                .metavar("KEY-VALUE")
+                .dest("keyValue")
+                .setDefault(false)
+                .help("publish key-value type to generate traffic for compact topics");
 
         parser.addArgument("--transactional-id")
                .action(store())

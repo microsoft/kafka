@@ -87,6 +87,8 @@ public class OffsetCheckpoint {
 
                 writer.flush();
                 fileOutputStream.getFD().sync();
+            } finally {
+                Utils.closeQuietly(fileOutputStream, temp.getName());
             }
 
             Utils.atomicMoveWithFallback(temp.toPath(), file.toPath());

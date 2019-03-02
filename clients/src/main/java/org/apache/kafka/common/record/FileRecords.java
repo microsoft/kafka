@@ -19,6 +19,7 @@ package org.apache.kafka.common.record;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.network.TransportLayer;
 import org.apache.kafka.common.record.FileLogInputStream.FileChannelRecordBatch;
+import org.apache.kafka.common.utils.OperatingSystem;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
 
@@ -47,7 +48,7 @@ public class FileRecords extends AbstractRecords implements Closeable {
 
     // mutable state
     private final AtomicInteger size;
-    private final FileChannel channel;
+    private FileChannel channel;
     private volatile File file;
 
     /**
@@ -208,11 +209,22 @@ public class FileRecords extends AbstractRecords implements Closeable {
      * @throws IOException if rename fails.
      */
     public void renameTo(File f) throws IOException {
-        try {
-            channel.close(); 
-            Utils.atomicMoveWithFallback(file.toPath(), f.toPath());
-        } finally {
-            this.file = f;
+        if(OperatingSystem.IS_WINDOWS) {
+            this.channel.close();
+            try {
+                Utils.atomicMoveWithFallback(file.toPath(), f.toPath());
+            } finally {
+                this.file = f;
+                if(!f.getName().endsWith(".deleted")) {
+                    this.channel = openChannel(f, true, true, this.start, false);
+                }
+            }
+        } else {
+            try {
+                Utils.atomicMoveWithFallback(file.toPath(), f.toPath());
+            } finally {
+                this.file = f;
+            }
         }
     }
 

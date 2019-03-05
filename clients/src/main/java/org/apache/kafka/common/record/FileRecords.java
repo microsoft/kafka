@@ -205,6 +205,13 @@ public class FileRecords extends AbstractRecords implements Closeable {
     }
 
     /**
+     * Reopens the channel
+     */
+    public void reOpenChannel() throws IOException {
+        this.channel = openChannel(this.file, true, true, this.start, false);
+    }
+
+    /**
      * Rename the file that backs this message set
      * @throws IOException if rename fails.
      */
@@ -216,7 +223,7 @@ public class FileRecords extends AbstractRecords implements Closeable {
             } finally {
                 this.file = f;
                 if(!f.getName().endsWith(".deleted")) {
-                    this.channel = openChannel(f, true, true, this.start, false);
+                    reOpenChannel();
                 }
             }
         } else {

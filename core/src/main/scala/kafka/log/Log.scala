@@ -24,7 +24,7 @@ import java.util.concurrent.atomic._
 import java.util.concurrent.{ConcurrentNavigableMap, ConcurrentSkipListMap, TimeUnit}
 
 import kafka.api.KAFKA_0_10_0_IV0
-import kafka.common.{InvalidOffsetException, KafkaException, LongRef, UnexpectedAppendOffsetException, OffsetsOutOfOrderException}
+import kafka.common.{InvalidOffsetException, KafkaException, LongRef, OffsetsOutOfOrderException, UnexpectedAppendOffsetException}
 import kafka.metrics.KafkaMetricsGroup
 import kafka.server.{BrokerTopicStats, FetchDataInfo, LogDirFailureChannel, LogOffsetMetadata}
 import kafka.utils._
@@ -36,7 +36,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.collection.{Seq, Set, mutable}
 import com.yammer.metrics.core.Gauge
-import org.apache.kafka.common.utils.{Time, Utils}
+import org.apache.kafka.common.utils.{OperatingSystem, Time, Utils}
 import kafka.message.{BrokerCompressionCodec, CompressionCodec, NoCompressionCodec}
 import kafka.server.checkpoints.{LeaderEpochCheckpointFile, LeaderEpochFile}
 import kafka.server.epoch.{LeaderEpochCache, LeaderEpochFileCache}
@@ -576,7 +576,17 @@ class Log(@volatile var dir: File,
     lock synchronized {
       maybeHandleIOException(s"Error while renaming dir for $topicPartition in log dir ${dir.getParent}") {
         val renamedDir = new File(dir.getParent, name)
-        Utils.atomicMoveWithFallback(dir.toPath, renamedDir.toPath)
+
+        if(OperatingSystem.IS_WINDOWS) {
+          this.closeHandlers()
+          Utils.atomicMoveWithFallback(dir.toPath, renamedDir.toPath)
+          if(!name.endsWith(Log.DeleteDirSuffix)) {
+            this.openHandlers()
+          }
+        } else {
+          Utils.atomicMoveWithFallback(dir.toPath, renamedDir.toPath)
+        }
+
         if (renamedDir != dir) {
           dir = renamedDir
           logSegments.foreach(_.updateDir(renamedDir))
@@ -597,6 +607,14 @@ class Log(@volatile var dir: File,
     lock synchronized {
       logSegments.foreach(_.closeHandlers())
       isMemoryMappedBufferClosed = true
+    }
+  }
+
+  def openHandlers() {
+    debug("Opening handlers")
+    lock synchronized {
+      logSegments.foreach(_.openHandlers())
+      isMemoryMappedBufferClosed = false
     }
   }
 

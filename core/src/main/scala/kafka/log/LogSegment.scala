@@ -505,6 +505,13 @@ class LogSegment private[log] (val log: FileRecords,
     CoreUtils.swallow(txnIndex.close(), this)
   }
 
+  def openHandlers(): Unit = {
+    CoreUtils.swallow(offsetIndex.reOpenMemoryMap(offsetIndex.file), this)
+    CoreUtils.swallow(timeIndex.reOpenMemoryMap(timeIndex.file), this)
+    CoreUtils.swallow(log.reOpenChannel(), this)
+    CoreUtils.swallow(txnIndex.openChannel(), this)
+  }
+
   /**
    * Delete this log segment from the filesystem.
    */

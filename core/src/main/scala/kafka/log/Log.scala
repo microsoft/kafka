@@ -578,7 +578,7 @@ class Log(@volatile var dir: File,
         val renamedDir = new File(dir.getParent, name)
 
         if(OperatingSystem.IS_WINDOWS) {
-          this.closeHandlers()
+          this.close()
           Utils.atomicMoveWithFallback(dir.toPath, renamedDir.toPath)
           if(!name.endsWith(Log.DeleteDirSuffix)) {
             this.openHandlers()

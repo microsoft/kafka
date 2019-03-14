@@ -395,8 +395,8 @@ class Log(@volatile var dir: File,
       // This means swap file is empty. Because of that baseOffset and nextOffset is the same.
       // logSegments method above would return empty list. Here we are making sure that
       // the segment with the baseOffset is returned as well.
-      if(oldSegments.isEmpty && swapSegment.baseOffset == nextOffset) {
-        oldSegments = segments.headMap(swapSegment.baseOffset, true).values.asScala;
+      if(oldSegments.isEmpty && segments.containsKey(swapSegment.baseOffset)) {
+        oldSegments = Iterable(segments.get(swapSegment.baseOffset))
       }
 
       replaceSegments(swapSegment, oldSegments.toSeq, isRecoveredSwapFile = true)

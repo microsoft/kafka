@@ -793,6 +793,8 @@ project(':clients') {
     compile libs.lz4
     compile libs.snappy
     compile libs.slf4jApi
+    compile files('../repository/jni4net.j-0.8.8.0.jar')
+    compile files('../repository/WcfSoapClient.j4n.jar')
 
     testCompile libs.bcpkix
     testCompile libs.junit

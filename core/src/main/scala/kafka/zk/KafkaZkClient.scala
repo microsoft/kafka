@@ -1139,6 +1139,45 @@ class KafkaZkClient private[zk] (zooKeeperClient: ZooKeeperClient, isSecure: Boo
     }
   }
 
+
+  /**
+    * Sets or creates the resource znode path with the given acls and expected zk version depending
+    * on whether it already exists or not.
+    * @param resource
+    * @param aclsSet
+    * @param expectedVersion
+    * @return true if the update was successful and the new version
+    */
+  def conditionalSetOrCreateAclsForResource(resource: Resource, aclsSet: Set[Acl], expectedVersion: Int): (Boolean, Int) = {
+    def set(aclData: Array[Byte],  expectedVersion: Int): SetDataResponse = {
+      val setDataRequest = SetDataRequest(ResourceZNode.path(resource), aclData, expectedVersion)
+      retryRequestUntilConnected(setDataRequest)
+    }
+
+    def create(aclData: Array[Byte]): CreateResponse = {
+      val path = ResourceZNode.path(resource)
+      val createRequest = CreateRequest(path, aclData, defaultAcls(path), CreateMode.PERSISTENT)
+      retryRequestUntilConnected(createRequest)
+    }
+
+    val aclData = ResourceZNode.encode(aclsSet)
+
+    val setDataResponse = set(aclData, expectedVersion)
+    setDataResponse.resultCode match {
+      case Code.OK => (true, setDataResponse.stat.getVersion)
+      case Code.NONODE => {
+        val createResponse = create(aclData)
+        createResponse.resultCode match {
+          case Code.OK => (true, 0)
+          case Code.NODEEXISTS => (false, 0)
+          case _ => throw createResponse.resultException.get
+        }
+      }
+      case Code.BADVERSION => (false, 0)
+      case _ => throw setDataResponse.resultException.get
+    }
+  }
+
   /**
    * Creates an Acl change notification message.
    * @param resource resource pattern that has changed

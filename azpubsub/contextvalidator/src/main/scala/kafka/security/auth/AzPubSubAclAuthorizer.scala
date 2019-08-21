@@ -9,7 +9,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.{Date, Locale, TimeZone}
 
 import azpubsub.kafka.security.auth.TokenValidator
-//import com.yammer.metrics.core.Gauge
 import kafka.common.{NotificationHandler, ZkNodeChangeNotificationListener}
 import kafka.metrics.KafkaMetricsGroup
 import kafka.network.RequestChannel.Session
@@ -18,11 +17,9 @@ import kafka.server.KafkaConfig
 import kafka.utils.CoreUtils.{inReadLock, inWriteLock}
 import kafka.utils.{CoreUtils, Json}
 import kafka.zk.{KafkaZkClient, LiteralAclChangeStore, ZkAclChangeStore}
-//import kafka.zk.{AclChangeNotificationSequenceZNode, AclChangeNotificationZNode, KafkaZkClient}
 import org.apache.kafka.common.security.auth.KafkaPrincipal
 import org.apache.kafka.common.utils.Time
 import org.apache.kafka.common.resource.PatternType
-//import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -108,39 +105,26 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
     * @return
     */
   override def authorize(session: Session, operation: Operation, resource: Resource): Boolean = {
-
-    info(s"authorize -- gogogog -- resource.resourceType: ${resource.resourceType.name}; principal: ${Try(session.principal.getName).getOrElse("Empty principal name")}, Operation: ${operation.name}, principal type: ${Try(session.principal.getPrincipalType).getOrElse("Empty principal type")};")
-
+    debug(s"authorize - resource.resourceType: ${resource.resourceType.name}; principal: ${Try(session.principal.getName).getOrElse("Empty principal name")}, Operation: ${operation.name}, principal type: ${Try(session.principal.getPrincipalType).getOrElse("Empty principal type")};")
     val meterAclAuthorizationRequest = newMeter(AzPubSubAclAuthorizer.AzPubSubAclAuthorizingRequest,
       "aclauthorizationrequest",
       TimeUnit.SECONDS)
     meterAclAuthorizationRequest.mark()
 
     if(operation == Describe) {
-      info(s"Topic ${resource.name}  metadata description is allowed , authorized, Client Address: ${session.clientAddress.getHostAddress}")
+      debug(s"Topic ${resource.name}  metadata description is allowed , authorized, Client Address: ${session.clientAddress.getHostAddress}")
       return true
     }
 
     resource.resourceType match {
-
       case Topic => {
-
-        info(s"-- gogogog --Topic ${resource.name}")
-
         if(topicsWhiteListed.contains(resource.name)) {
-
-          info(s"-- gogogog --Topic ${resource.name} is white listed, authorized. Client Address: ${session.clientAddress.getHostAddress}")
-
+          debug(s"Topic ${resource.name} is white listed, authorized. Client Address: ${session.clientAddress.getHostAddress}")
           return true
         }
 
         val acls = getAcls(resource) ++ getAcls(new Resource(resource.resourceType, Resource.WildCardResource))
-
-        acls.foreach(acl => info(s"-- gogogog --ACL hahaha :${acl.toString()}"))
-
-        info(s"-- gogogog --authorize -- all configed acls: ${acls.toString()} ")
-
-        info(s"-- gogogog Acls read from Zookeeper, length: ${acls.size}; acls to string: ${acls.toString()}")
+        info(s"Acls read from Zookeeper, length: ${acls.size}.")
 
         session.principal.getPrincipalType match {
 
@@ -163,7 +147,7 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
              //For dsts token, KafkaPrincipal = new KafkaPrincipal(principalType = "Token", name = "acl_json_string");
             val token   = Json.parseFull(session.principal.getName).get.asJsonObject
 
-            info(s"TOKEN -- gogogog --authorize -- token in session: ${token.toString()} ")
+            debug(s"token in session: ${token.toString()} ")
             /**
               *  If there's a token, then validate if the token is still valid - token not expired.
               */
@@ -180,7 +164,6 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
 
             //TOKEN cache one --- after one hour/60 MINs, server will re-authenticate the TOKEN again.
             if(cacheTokenLastValidatedTime(token("UniqueId").toString).toInstant.plus(60, ChronoUnit.MINUTES).isBefore(currentMoment.toInstant)) {
-
               if(false == tokenAuthenticator.validate(token("Base64Token").to[String])){
                 warn(s"token validation failed, token: ${token("Base64Token").to[String]}")
                 return false
@@ -190,47 +173,34 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
             }
 
             if( currentMoment.before(validFrom)){
-
               warn(s"The ValidFrom date time of the token is in the future, this is invalid. ValidFrom: ${token("ValidFrom")}, now: ${ currentMoment}")
-
               val meterInValidFrom = newMeter(AzPubSubAclAuthorizer.TokenInvalidFromDatetimeRateMs, "invaliddststoken", TimeUnit.SECONDS)
               meterInValidFrom.mark()
-
               return false
             }
 
             if( currentMoment.after(validTo)) {
-
               warn(s"The token has already expired. ValidTo: ${token("ValidTo")}, now: ${currentMoment}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
-
               val meterInvalidTo = newMeter(AzPubSubAclAuthorizer.TokenExpiredRateMs, "invaliddststoken", TimeUnit.SECONDS)
               meterInvalidTo.mark()
-
               return false
             }
 
             info(s"Token is valid. ValidFrom: ${token("ValidFrom")}, ValidTo: ${token("ValidTo")}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
-
             token("Roles").asJsonArray.iterator.map(_.to[String]).foreach(r => {
-              info(s"Claim from json token: ${r}")
+              debug(s"Claim from json token: ${r}")
               val prin = new KafkaPrincipal(KafkaPrincipal.ROLE_TYPE, r)
-
               if(aclMatch(operation, resource, prin, session.clientAddress.getHostAddress, Allow, acls)){
-
-                info(s"Authorization for ${prin} operation ${operation} on resource ${resource} succeeded.")
-
+                debug(s"Authorization for ${prin} operation ${operation} on resource ${resource} succeeded.")
                 val meterValidToken = newMeter(AzPubSubAclAuthorizer.TopicAuthorizationUsingTokenSuccessfulRateMs, "validtoken", TimeUnit.SECONDS)
                 meterValidToken.mark()
-
                 return true
               }
             })
 
             warn(s"The token doesn't have any role permitted to access the particular topic ${resource.name}.")
-
             val meterUnauthorizedToken = newMeter(AzPubSubAclAuthorizer.TokenNotAuthorizedForTopicRateMs, "unauthorizedtoken", TimeUnit.SECONDS)
             meterUnauthorizedToken.mark()
-
             return false
           }
           case _ => {
@@ -256,38 +226,28 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
           * This kind of requests should be always coming from brokers of the current cluster; otherwise, the request should be rejected.
           */
 
-        info(s"session client address: ${session.clientAddress.getHostAddress}")
-
+        debug(s"session client address: ${session.clientAddress.getHostAddress}")
         if(!brokerHosts.contains(session.clientAddress.getHostAddress)) {
-
           val allBrokers = zkClient.getAllBrokersInCluster
-
           allBrokers.foreach(b => b.endPoints.foreach(e => {
-
             brokerHosts += InetAddress.getByName(e.host).getHostAddress
-
             info(s"Kafka broker host : ${e.host}")
           }))
         }
 
         if(!brokerHosts.contains (session.clientAddress.getHostAddress) ){
-
           warn(s"Client is not broker and accessing ${resource.resourceType} rejected: ${session.clientAddress.getHostAddress}")
-
           return false
         }
 
         info(s"Client is broker and accessing ${resource.resourceType} allowed: ${session.clientAddress.getHostAddress}")
-
         return true
       }
     }
   }
 
   protected def aclMatch(operations: Operation, resource: Resource, principal: KafkaPrincipal, host: String, permissionType: PermissionType, acls: Set[Acl]): Boolean = {
-    //acls -- got from Topics-Prod.ini
     acls.find { acl =>
-
       acl.permissionType == permissionType &&
         (acl.principal == principal //USER:ANONYMOUS
           || (principal.getPrincipalType == KafkaPrincipal.USER_TYPE && acl.principal == KafkaPrincipal.WildCardUserTypePrincipal)
@@ -295,10 +255,8 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
         (operations == acl.operation || acl.operation == All) &&
         (acl.host == host || acl.host == Acl.WildCardHost)
     }.exists {
-
       acl =>
         info(s"operation = $operations on resource = $resource from host = $host is $permissionType based on acl = $acl")
-
         true
     }
   }

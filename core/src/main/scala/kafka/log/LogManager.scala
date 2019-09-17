@@ -860,7 +860,8 @@ class LogManager(logDirs: Seq[File],
         cleaner.abortCleaning(topicPartition)
         cleaner.updateCheckpoints(removedLog.dir.getParentFile)
       }
-      // Closing the log as we are deleting it
+      // Flush and Close the log as we are deleting it
+      removedLog.flush()
       removedLog.close()
       removedLog.renameDir(Log.logDeleteDirName(topicPartition))
       checkpointRecoveryOffsetsAndCleanSnapshot(removedLog.dir.getParentFile, ArrayBuffer.empty)

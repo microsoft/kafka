@@ -1971,6 +1971,7 @@ class Log(@volatile var dir: File,
    */
   private def asyncDeleteSegment(segment: LogSegment) {
     // Since we are deleting the segment, lets close its handlers
+    segment.flush()
     segment.closeHandlers()
     segment.changeFileSuffixes("", Log.DeletedFileSuffix)
     def deleteSeg() {

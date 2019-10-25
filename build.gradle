@@ -625,6 +625,7 @@ def pkgs = [
     'streams:streams-scala',
     'streams:test-utils',
     'tools',
+    'azpubsub', 
     'azpubsub:api', 
     'azpubsub:contextvalidator'
 ] + connectPkgs
@@ -865,6 +866,8 @@ project(':core') {
     from(project(':streams:test-utils').configurations.runtime) { into("libs/") }
     from(project(':streams:examples').jar) { into("libs/") }
     from(project(':streams:examples').configurations.runtime) { into("libs/") }
+    from(project(':azpubsub').jar) { into("libs") }
+    from(project(':azpubsub').configurations.runtime) { into("libs") }
     from(project(':azpubsub:api').jar) { into("libs") }
     from(project(':azpubsub:api').configurations.runtime) { into("libs") }
     from(project(':azpubsub:contextvalidator').jar) { into("libs") }
@@ -904,6 +907,8 @@ project(':core') {
     from(project(':streams:examples').jar) { into("libs/") }
     from(project(':streams:examples').configurations.runtime) { into("libs/") }
     from(project.file("$rootDir/repository")) { into "libs/" }
+    from(project(':azpubsub').jar) { into("libs") }
+    from(project(':azpubsub').configurations.runtime) { into("libs") }
     from(project(':azpubsub:api').jar) { into("libs") }
     from(project(':azpubsub:api').configurations.runtime) { into("libs") exclude("zookeeper-3.4.14.jar") }
     from(project(':azpubsub:contextvalidator').jar) { into("libs") }
@@ -945,6 +950,49 @@ project(':core') {
 
   checkstyle {
     configProperties = checkstyleConfigProperties("import-control-core.xml")
+  }
+}
+
+project(':azpubsub') {
+  apply plugin: 'scala'
+  apply plugin: 'java'
+  archivesBaseName = "kafka-azpubsub"
+
+  sourceSets {
+    main {
+      java {
+        srcDir 'src/main/java'
+      }
+      scala {
+        srcDir 'src/main/scala'
+      }
+    }
+    test {
+      java {
+        srcDir 'src/test/java'
+      }
+      scala {
+        srcDir 'src/test/scala'
+      }
+    }
+  }
+
+  dependencies {
+    compile libs.scalaLibrary
+    compileOnly libs.log4j
+
+    testCompile libs.junit
+  }
+
+  jar {
+    manifest {
+      attributes('Implementation-Title': 'kafka-azpubsub',
+              'Implementation-Version': '1.0')
+    }
+  }
+
+  checkstyle {
+    configProperties = [importControlFile: "$rootDir/checkstyle/import-control-core.xml"]
   }
 }
 
@@ -1016,6 +1064,7 @@ project(':azpubsub:contextvalidator') {
 
   dependencies {
     compile project(':core')
+    compile project(':azpubsub')
     compile project(':azpubsub:api')
       
     compile libs.junit

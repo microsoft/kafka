@@ -13,7 +13,9 @@ import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LoggingEvent;
 
 public class DatedRollingFileAppender extends FileAppender {
+  private final static String LINE_SEP_REGEX = Layout.LINE_SEP + "$";
   private final static String LINE_SEP_REPLACE_CHAR = "|";
+  private final static String EXCEPTION_SEP = "###";
 
   /**
     The date pattern. By default, the pattern is set to
@@ -130,13 +132,13 @@ public class DatedRollingFileAppender extends FileAppender {
     // super.subAppend(event);
     // replacing super.subAppend to replace newline char with |
     String line = this.layout.format(event);
-    line = line.replaceAll(Layout.LINE_SEP + "$", ""); // remove the end newline character added by the formatter
+    line = line.replaceAll(DatedRollingFileAppender.LINE_SEP_REGEX, ""); // remove the end newline character added by the formatter
     line = line.replace(Layout.LINE_SEP, DatedRollingFileAppender.LINE_SEP_REPLACE_CHAR); // replace all newline with pipe
     this.qw.write(line);
     if (layout.ignoresThrowable()) {
       String[] s = event.getThrowableStrRep();
       if (s != null) {
-        this.qw.write(" ### "); // putting a separator for the log parser to extract the stack trace easily
+        this.qw.write(DatedRollingFileAppender.EXCEPTION_SEP); // putting a separator for the log parser to extract the stack trace easily
         for (int i = 0; i < s.length; i++) {
           if (s[i] != null) {
             this.qw.write(s[i].replace(Layout.LINE_SEP, DatedRollingFileAppender.LINE_SEP_REPLACE_CHAR)); // replace all newline with pipe

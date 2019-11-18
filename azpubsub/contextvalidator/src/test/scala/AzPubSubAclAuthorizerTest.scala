@@ -7,18 +7,20 @@ import kafka.security.auth.{Acl, All, Allow, AzPubSubAclAuthorizer, Resource, To
 import kafka.server.KafkaConfig
 import kafka.zk.KafkaZkClient
 import kafka.zookeeper.ZooKeeperClient
+import org.apache.kafka.common.resource.PatternType
 
 import scala.collection.mutable
 import org.apache.kafka.common.security.auth.KafkaPrincipal
 import org.easymock.EasyMock
 import org.easymock.EasyMock._
-import org.junit.{Test}
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.powermock.api.support.membermodification.MemberMatcher
 import org.powermock.core.classloader.annotations.{PowerMockIgnore, PrepareForTest}
 import org.powermock.modules.junit4.PowerMockRunner
 import org.powermock.reflect.Whitebox
 import org.powermock.api.support.membermodification.MemberModifier.suppress
+
 import scala.collection.JavaConverters._
 
 
@@ -44,8 +46,6 @@ class AzPubSubAclAuthorizerTest {
             suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "newMeter"))
             suppress(MemberMatcher.method(classOf[ZooKeeperClient], "newGauge"))
             suppress(MemberMatcher.method(classOf[ZooKeeperClient], "newMeter"))
-
-            javassist.CannotCompileException
 
             EasyMock.replay(authorizer)
 
@@ -79,7 +79,7 @@ class AzPubSubAclAuthorizerTest {
         val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
         val localHost = java.net.InetAddress.getLocalHost
         val session = Session(principal, localHost)
-        val resource = Resource(Topic, "testTopic")
+        val resource = Resource(Topic, "testTopic", PatternType.LITERAL)
 
         val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
           .addMockedMethod("getAcls", classOf[Resource])
@@ -125,7 +125,7 @@ class AzPubSubAclAuthorizerTest {
             val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
             val localHost = java.net.InetAddress.getLocalHost
             val session = Session(principal, localHost)
-            val resource = Resource(Topic, "testTopic")
+            val resource = Resource(Topic, "testTopic", PatternType.LITERAL)
 
             val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
               .addMockedMethod("getAcls", classOf[Resource])
@@ -171,7 +171,7 @@ class AzPubSubAclAuthorizerTest {
             val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
             val localHost = java.net.InetAddress.getLocalHost
             val session = Session(principal, localHost)
-            val resource = Resource(Topic, "testTopic")
+            val resource = Resource(Topic, "testTopic", PatternType.LITERAL)
 
             val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
               .addMockedMethod("getAcls", classOf[Resource])
@@ -217,7 +217,7 @@ class AzPubSubAclAuthorizerTest {
             val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
             val localHost = java.net.InetAddress.getLocalHost
             val session = Session(principal, localHost)
-            val resource = Resource(Topic, "testTopic")
+            val resource = Resource(Topic, "testTopic", PatternType.LITERAL)
 
             val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
               .addMockedMethod("getAcls", classOf[Resource])
@@ -263,7 +263,7 @@ class AzPubSubAclAuthorizerTest {
             val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
             val localHost = java.net.InetAddress.getLocalHost
             val session = Session(principal, localHost)
-            val resource = Resource(Topic, "testWhiteListedTopic")
+            val resource = Resource(Topic, "testWhiteListedTopic", PatternType.LITERAL)
 
             val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
               .addMockedMethod("getAcls", classOf[Resource])
@@ -314,7 +314,7 @@ class AzPubSubAclAuthorizerTest {
             val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
             val localHost = java.net.InetAddress.getLocalHost
             val session = Session(principal, localHost)
-            val resource = Resource(Topic, "testWhiteListedTopic")
+            val resource = Resource(Topic, "testWhiteListedTopic", PatternType.LITERAL)
 
             val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
               .addMockedMethod("getAcls", classOf[Resource])

@@ -3,7 +3,7 @@ package azpubsub.kafka.security.authenticator;
 /**
  * Java Claim class mapped from c# claim class defined in dSTS token
  */
-public class Claim {
+public class Claim implements Comparable<Claim> {
     private String claimType;
     private String issuer;
     private String originalIssuer;
@@ -93,5 +93,61 @@ public class Claim {
 
     public void setValueTye (String type) {
         valueType = type;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 31 * hash + computeHash(value);
+        hash = 31 * hash + computeHash(valueType);
+        hash = 31 * hash + computeHash(claimType);
+        hash = 31 * hash + computeHash(roleClaimType);
+        hash = 31 * hash + computeHash(nameClaimType);
+        hash = 31 * hash + computeHash(issuer);
+        hash = 31 * hash + computeHash(originalIssuer);
+        hash = 31 * hash + computeHash(label);
+
+        return hash;
+    }
+
+    public int compareTo(Claim another) {
+        int ret = this.hashCode() - another.hashCode();
+        if(0 == ret) {
+            ret = compare(value, another.value);
+            if(ret != 0) return ret;
+
+            ret = compare(valueType, another.valueType);
+            if(ret != 0) return ret;
+
+            ret = compare(claimType, another.claimType);
+            if(ret != 0) return ret;
+
+            ret = compare(roleClaimType, another.roleClaimType);
+            if(ret != 0) return ret;
+
+            ret = compare(nameClaimType, another.nameClaimType);
+            if(ret != 0) return ret;
+
+            ret = compare(issuer, another.issuer);
+            if(ret != 0) return ret;
+
+            ret = compare(originalIssuer, another.originalIssuer);
+            if(ret != 0) return ret;
+
+            ret = compare(label, another.label);
+            if(ret != 0) return ret;
+        }
+        return ret;
+    }
+
+    private int computeHash(String s) {
+        return null == s ? 0 : s.hashCode();
+    }
+
+    private int compare(String str1, String str2) {
+        if(str1 == null && str2 == null) return 0;
+        if(str1 == null) return -compare(str2, null);
+
+        return str2 == null ? 1 : str1.compareTo(str2);
     }
 }

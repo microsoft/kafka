@@ -16,6 +16,7 @@
  */
 package org.apache.kafka.common.security.oauthbearer.internals;
 
+import static org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer.AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -30,6 +31,8 @@ import java.util.Map;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
+import javax.security.sasl.Sasl;
+import javax.security.sasl.SaslServer;
 
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.types.Password;
@@ -94,7 +97,7 @@ public class OAuthBearerSaslServerTest {
 
     @Before
     public void setUp() {
-        saslServer = new OAuthBearerSaslServer(VALIDATOR_CALLBACK_HANDLER);
+        saslServer = new OAuthBearerSaslServer(VALIDATOR_CALLBACK_HANDLER, null);
     }
 
     @Test
@@ -137,7 +140,7 @@ public class OAuthBearerSaslServerTest {
      */
     @Test
     public void unrecognizedExtensionsAreNotSaved() throws Exception {
-        saslServer = new OAuthBearerSaslServer(EXTENSIONS_VALIDATOR_CALLBACK_HANDLER);
+        saslServer = new OAuthBearerSaslServer(EXTENSIONS_VALIDATOR_CALLBACK_HANDLER, null);
         Map<String, String> customExtensions = new HashMap<>();
         customExtensions.put("firstKey", "value1");
         customExtensions.put("secondKey", "value1");
@@ -172,7 +175,7 @@ public class OAuthBearerSaslServerTest {
                 }
             }
         };
-        saslServer = new OAuthBearerSaslServer(invalidHandler);
+        saslServer = new OAuthBearerSaslServer(invalidHandler, null);
         Map<String, String> customExtensions = new HashMap<>();
         customExtensions.put("firstKey", "value");
         customExtensions.put("secondKey", "value");
@@ -198,6 +201,15 @@ public class OAuthBearerSaslServerTest {
         String challenge = new String(bytes, StandardCharsets.UTF_8);
         assertEquals("{\"status\":\"invalid_token\"}", challenge);
     }
+
+    @Test
+    public void customizedPrincipalComparator() throws Exception {
+        Map<String, String> props = new HashMap<>();
+        props.put(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS, "org.apache.kafka.common.security.oauthbearer.internals.MockPrincipalcomparator");
+        SaslServer saslServer1 = new OAuthBearerSaslServer(VALIDATOR_CALLBACK_HANDLER, props);
+        saslServer1.evaluateResponse(clientInitialResponse("user"));
+    }
+
 
     private byte[] clientInitialResponse(String authorizationId)
             throws OAuthBearerConfigException, IOException, UnsupportedCallbackException, LoginException {

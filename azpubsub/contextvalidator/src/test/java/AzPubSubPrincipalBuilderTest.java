@@ -36,6 +36,8 @@ public class AzPubSubPrincipalBuilderTest {
     private final String AzPubSubSaslAuthenticationValidatorClass = "azpubsub.sasl.authentication.validator.class";
     private final String MockPositiveSslAuthenticationContextValidator = "mockPositiveSslAuthenticationContextValidator";
     private final String MockPositiveSaslAuthenticationValidator = "mockPositiveSaslAuthenticationContextValidator";
+    private final String MockNegativeSslAuthenticationContextValidator = "mockNegativeSslAuthenticationContextValidator";
+    private final String MockNegativeSaslAuthenticationValidator = "mockNegativeSaslAuthenticationContextValidator";
 
     private AzPubSubPrincipalBuilder azPubSubPrincipalBuilder = new AzPubSubPrincipalBuilder();
 
@@ -66,7 +68,7 @@ public class AzPubSubPrincipalBuilderTest {
 
         Map<String, Object> configs = new HashMap<>();
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
+        configs.put(AzPubSubSslAuthenticationValidatorClass, "mockNonExistingSslAuthenticationContextValidator");
         configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
@@ -82,10 +84,14 @@ public class AzPubSubPrincipalBuilderTest {
         Map<String, Object> configs = new HashMap<>();
 
         configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
+        configs.put(AzPubSubSaslAuthenticationValidatorClass, "mockNonExistingPositiveSaslAuthenticationContextValidator");
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
+        SSLSession sslSession = EasyMock.mock(SSLSession.class);
+        InetAddress inetAddress =  InetAddress.getLoopbackAddress();
 
         azPubSubPrincipalBuilder.configure(configs);
+        SslAuthenticationContext sslAuthenticationContext = new SslAuthenticationContext(sslSession, inetAddress, SecurityProtocol.SSL.name);
+        KafkaPrincipal kafkaPrincipal = azPubSubPrincipalBuilder.build(sslAuthenticationContext);
     }
 
     @Test
@@ -101,7 +107,7 @@ public class AzPubSubPrincipalBuilderTest {
 
         azPubSubPrincipalBuilder.configure(configs);
 
-        SslAuthenticationContext sslAuthenticationContext = new SslAuthenticationContext(sslSession, inetAddress);
+        SslAuthenticationContext sslAuthenticationContext = new SslAuthenticationContext(sslSession, inetAddress, SecurityProtocol.SSL.name);
         KafkaPrincipal kafkaPrincipal = azPubSubPrincipalBuilder.build(sslAuthenticationContext);
         assert(kafkaPrincipal.getName().equals("ANONYMOUS"));
         assert(KafkaPrincipal.ANONYMOUS.getPrincipalType().equals(kafkaPrincipal.getPrincipalType()));
@@ -120,7 +126,7 @@ public class AzPubSubPrincipalBuilderTest {
         InetAddress inetAddress =  InetAddress.getLoopbackAddress();
         azPubSubPrincipalBuilder.configure(configs);
 
-        SaslAuthenticationContext saslAuthenticationContext = new SaslAuthenticationContext(saslServer, SecurityProtocol.SASL_SSL, inetAddress);
+        SaslAuthenticationContext saslAuthenticationContext = new SaslAuthenticationContext(saslServer, SecurityProtocol.SASL_SSL, inetAddress, SecurityProtocol.SASL_SSL.name);
         KafkaPrincipal kafkaPrincipal = azPubSubPrincipalBuilder.build(saslAuthenticationContext);
         assert(kafkaPrincipal.getPrincipalType().equals("Token"));
     }
@@ -133,14 +139,14 @@ public class AzPubSubPrincipalBuilderTest {
         Map<String, Object> configs = new HashMap<>();
 
         configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
+        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockNegativeSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
         SaslServer saslServer = EasyMock.mock(SaslServer.class);
         InetAddress inetAddress =  InetAddress.getLoopbackAddress();
         azPubSubPrincipalBuilder.configure(configs);
 
-        SaslAuthenticationContext saslAuthenticationContext = new SaslAuthenticationContext(saslServer, SecurityProtocol.SASL_SSL, inetAddress);
+        SaslAuthenticationContext saslAuthenticationContext = new SaslAuthenticationContext(saslServer, SecurityProtocol.SASL_SSL, inetAddress, SecurityProtocol.SASL_SSL.name);
         KafkaPrincipal kafkaPrincipal = azPubSubPrincipalBuilder.build(saslAuthenticationContext);
     }
 
@@ -151,7 +157,7 @@ public class AzPubSubPrincipalBuilderTest {
 
         Map<String, Object> configs = new HashMap<>();
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
+        configs.put(AzPubSubSslAuthenticationValidatorClass, MockNegativeSslAuthenticationContextValidator);
         configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
@@ -160,7 +166,7 @@ public class AzPubSubPrincipalBuilderTest {
 
         azPubSubPrincipalBuilder.configure(configs);
 
-        SslAuthenticationContext sslAuthenticationContext = new SslAuthenticationContext(sslSession, inetAddress);
+        SslAuthenticationContext sslAuthenticationContext = new SslAuthenticationContext(sslSession, inetAddress, SecurityProtocol.SSL.name);
         KafkaPrincipal kafkaPrincipal = azPubSubPrincipalBuilder.build(sslAuthenticationContext);
     }
 }

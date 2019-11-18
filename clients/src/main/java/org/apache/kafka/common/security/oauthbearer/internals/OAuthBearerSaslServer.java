@@ -189,17 +189,18 @@ public class OAuthBearerSaslServer implements SaslServer {
         return new byte[0];
     }
 
+    @SuppressWarnings("unchecked")
     public boolean comparePrincipals(String principal1, String principal2) {
        if(null != props && props.containsKey(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS)) {
            try {
-               Comparator<String> myComparator = Utils.newInstance(this.props.get(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS).toString(), Comparator.class);
+               Comparator myComparator = Utils.newInstance(this.props.get(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS).toString(), Comparator.class);
 
                if(null != myComparator) {
                   return 0 == myComparator.compare(principal1, principal2);
                }
            }
            catch (ClassNotFoundException ex) {
-               throw new IllegalArgumentException(String.format("Class is not found: {}, configured via: setting azpubsub.principal.comparator.class", this.props.get("azpubsub.principal.comparator.class").toString()));
+               throw new IllegalArgumentException(String.format("Class is not found: {}, configured via: setting azpubsub.principal.comparator.class", this.props.get("azpubsub.principal.comparator.class").toString()), ex.getCause());
            }
        }
 

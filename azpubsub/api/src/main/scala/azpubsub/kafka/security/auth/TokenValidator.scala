@@ -23,8 +23,7 @@ trait TokenValidator {
     * @throws TokenExpiredException
     * @throws InvalidTokenException
     */
-  @throws[TokenExpiredException]
-  @throws[InvalidTokenException]
+  @throws[TokenValidationException]
   def validate(base64TokenString: String) : AzPubSubOAuthBearerToken
 
   /**
@@ -34,6 +33,6 @@ trait TokenValidator {
     *         false - if token is invalid (siganture validation failed, etc.)
     * @throws InvalidTokenException
     */
-  @throws[InvalidTokenException]
+  @throws[TokenValidationException]
   def validateWithTokenExpiredAllowed(base64TokenString: String) : Boolean
 }

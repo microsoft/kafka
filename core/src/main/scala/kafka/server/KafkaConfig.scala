@@ -458,6 +458,7 @@ object KafkaConfig {
   val AzpubsubClientCertificateAclProp = "azpubsub.client.ceritificate.acl"
   val AzpubsubSslAuthenticationValidatorClassProp = "azpubsub.ssl.authentication.validator.class"
   val AzPubSubSaslAuthenticationValidatorClassProp = "azpubsub.sasl.authentication.validator.class"
+  val AzPubSubPrincipalComparatorClassProp = "azpubsub.principal.comparator.class"
   val AzPubSubTopicWhiteListProp = "azpubsub.topic.whitelist"
 
   /** ********* SASL Configuration ****************/
@@ -857,6 +858,7 @@ object KafkaConfig {
   val AzpubsubClientCertificateAclDoc= "Client Acls accepted by AzPubSub Kakfa Broker."
   val AzpubsubSslAuthenticationValidatorClassDoc = "The class used to validate Ssl Authentication Context, including client certificate."
   val AzPubSubSaslAuthenticationValidatorClassDoc = "The class used to validate Sasl Authentication Context."
+  val AzPubSubPrincipalComparatorClassDoc = "In SASL OAUTHBEAR mechanism, the client sends both principal (or authorization id) and OAuth bearer token to Kafka broker. The principal (authorization Id) needs be associated with the token"
   val AzPubSubTopicWhiteListDoc = "Whitelisted topics, separated by comma. All whitelisted topics are authorized to any user/role."
 
 
@@ -1108,6 +1110,7 @@ object KafkaConfig {
       .define(AzpubsubClientCertificateAclProp, STRING, null, HIGH, AzpubsubClientCertificateAclDoc)
       .define(AzpubsubSslAuthenticationValidatorClassProp, STRING, null, HIGH, AzpubsubSslAuthenticationValidatorClassDoc)
       .define(AzPubSubSaslAuthenticationValidatorClassProp, STRING, null, HIGH, AzPubSubSaslAuthenticationValidatorClassDoc)
+      .define(AzPubSubPrincipalComparatorClassProp, STRING, null, HIGH, AzPubSubPrincipalComparatorClassDoc)
       .define(AzPubSubTopicWhiteListProp, STRING, "", HIGH, AzPubSubTopicWhiteListDoc)
   }
 
@@ -1380,6 +1383,7 @@ class KafkaConfig(val props: java.util.Map[_, _], doLog: Boolean, dynamicConfigO
   val AzpubsubClientCeritificateAcl= getString(KafkaConfig.AzpubsubClientCertificateAclProp)
   val AzpubsubSslAuthenticationValidatorClass= getString(KafkaConfig.AzpubsubSslAuthenticationValidatorClassProp)
   val AzPubSubSaslAuthenticationValidatorClass= getString(KafkaConfig.AzPubSubSaslAuthenticationValidatorClassProp)
+  val AzPubSubPrincipalComparatorClass = getString(KafkaConfig.AzPubSubPrincipalComparatorClassProp)
 
 
   def addReconfigurable(reconfigurable: Reconfigurable): Unit = {

@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class AzPubSubOAuthBearerToken implements Comparable<AzPubSubOAuthBearerToken> {
+    private String tokenId = null;
     private Long validFromTicks = null;
     private Long validToTicks = null;
     private List<Claim> claims = null;
@@ -12,11 +13,13 @@ public class AzPubSubOAuthBearerToken implements Comparable<AzPubSubOAuthBearerT
 
     /**
      * Constructor
+     * @param id token id, from the original token
      * @param vf valid from field of the original token, in ticks
      * @param vt valid to field of the original token, in ticks
      * @param token the original token in base64 string
      */
-    public AzPubSubOAuthBearerToken(Long vf, Long vt, String token) {
+    public AzPubSubOAuthBearerToken(String id, Long vf, Long vt, String token) {
+        tokenId = id;
         validFromTicks = vf;
         validToTicks = vt;
         claims = new ArrayList<>();
@@ -32,6 +35,10 @@ public class AzPubSubOAuthBearerToken implements Comparable<AzPubSubOAuthBearerT
                          String v,
                          String vt) {
         claims.add(new Claim(ct, iss, oriIss, lbl, nct, rct, v, vt));
+    }
+
+    public String getTokenId() {
+        return tokenId;
     }
 
     public Long getValidFromTicks() {

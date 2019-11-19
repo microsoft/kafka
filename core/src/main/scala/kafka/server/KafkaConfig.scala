@@ -460,6 +460,7 @@ object KafkaConfig {
   val AzPubSubSaslAuthenticationValidatorClassProp = "azpubsub.sasl.authentication.validator.class"
   val AzPubSubPrincipalComparatorClassProp = "azpubsub.principal.comparator.class"
   val AzPubSubTopicWhiteListProp = "azpubsub.topic.whitelist"
+  val AzPubSubDstsMetadataConfigIniProp = "azpubsub.dsts.metadata.config.ini"
 
   /** ********* SASL Configuration ****************/
   val SaslMechanismInterBrokerProtocolProp = "sasl.mechanism.inter.broker.protocol"
@@ -860,7 +861,7 @@ object KafkaConfig {
   val AzPubSubSaslAuthenticationValidatorClassDoc = "The class used to validate Sasl Authentication Context."
   val AzPubSubPrincipalComparatorClassDoc = "In SASL OAUTHBEAR mechanism, the client sends both principal (or authorization id) and OAuth bearer token to Kafka broker. The principal (authorization Id) needs be associated with the token"
   val AzPubSubTopicWhiteListDoc = "Whitelisted topics, separated by comma. All whitelisted topics are authorized to any user/role."
-
+  val AzPubSubDstsMetadataConfigIniDoc = "Configuration ini file from where Kafka Broker reads metadata of dSTS service. File path is relative to environmental variable %DataDir%."
 
   private val configDef = {
     import ConfigDef.Importance._
@@ -1112,6 +1113,7 @@ object KafkaConfig {
       .define(AzPubSubSaslAuthenticationValidatorClassProp, STRING, null, HIGH, AzPubSubSaslAuthenticationValidatorClassDoc)
       .define(AzPubSubPrincipalComparatorClassProp, STRING, null, HIGH, AzPubSubPrincipalComparatorClassDoc)
       .define(AzPubSubTopicWhiteListProp, STRING, "", HIGH, AzPubSubTopicWhiteListDoc)
+      .define(AzPubSubDstsMetadataConfigIniProp, STRING, null, HIGH, AzPubSubDstsMetadataConfigIniDoc)
   }
 
   def configNames() = configDef.names().asScala.toList.sorted
@@ -1384,6 +1386,7 @@ class KafkaConfig(val props: java.util.Map[_, _], doLog: Boolean, dynamicConfigO
   val AzpubsubSslAuthenticationValidatorClass= getString(KafkaConfig.AzpubsubSslAuthenticationValidatorClassProp)
   val AzPubSubSaslAuthenticationValidatorClass= getString(KafkaConfig.AzPubSubSaslAuthenticationValidatorClassProp)
   val AzPubSubPrincipalComparatorClass = getString(KafkaConfig.AzPubSubPrincipalComparatorClassProp)
+  val AzPubSubDstsMetadataConfigIni = getString(KafkaConfig.AzPubSubDstsMetadataConfigIniProp)
 
 
   def addReconfigurable(reconfigurable: Reconfigurable): Unit = {

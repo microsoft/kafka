@@ -7,7 +7,7 @@ class mockPositiveTokenValidator extends TokenValidator{
   override def configure(javaConfigs: util.Map[String, _]): Unit = { }
 
   override def validate(base64TokenString: String): AzPubSubOAuthBearerToken = {
-    val token = new AzPubSubOAuthBearerToken(0L, 10L, "FAKETOKEN")
+    val token = new AzPubSubOAuthBearerToken("testId", 0L, 10L, "FAKETOKEN")
     token.AddClaim("", "", "", "", "", "", "", "")
     token
   }

@@ -64,7 +64,7 @@ public class OAuthBearerSaslServer implements SaslServer {
     private SaslExtensions extensions;
     private final Map<String, ?> props ;
 
-    public static final String  AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS = "azpubsub.principal.comparator.class";
+    public static final String  AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY = "azpubsub.principal.comparator.class";
 
     public OAuthBearerSaslServer(CallbackHandler callbackHandler, Map<String, ?> props) {
         if (!(Objects.requireNonNull(callbackHandler) instanceof AuthenticateCallbackHandler))
@@ -191,9 +191,9 @@ public class OAuthBearerSaslServer implements SaslServer {
 
     @SuppressWarnings("unchecked")
     public boolean comparePrincipals(String principal1, String principal2) {
-       if(null != props && props.containsKey(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS)) {
+       if(null != props && props.containsKey(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY)) {
            try {
-               Comparator myComparator = Utils.newInstance(this.props.get(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS).toString(), Comparator.class);
+               Comparator myComparator = Utils.newInstance(this.props.get(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY).toString(), Comparator.class);
 
                if(null != myComparator) {
                   return 0 == myComparator.compare(principal1, principal2);

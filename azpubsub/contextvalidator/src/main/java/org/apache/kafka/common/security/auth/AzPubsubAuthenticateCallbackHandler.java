@@ -21,7 +21,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import java.util.*;
 
 public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallbackHandler{
-    private static final String TokenValidatorClassPathKey = "token.validator.class";
+    private static final String TokenValidatorClassPathKey = "azpubsub.token.validator.class";
 
     private static final Logger log = LoggerFactory.getLogger(AzPubsubAuthenticateCallbackHandler.class);
     private boolean configured = false;
@@ -44,9 +44,13 @@ public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallback
 
         try {
             tokenValidator = Utils.newInstance(validatorClassName, TokenValidator.class);
+            tokenValidator.configure(configs);
         }
         catch (ClassNotFoundException ex) {
             throw new IllegalArgumentException(String.format("Class %s configured by %s is not found! Error: %s", validatorClassName, TokenValidatorClassPathKey, ex.getMessage() ));
+        }
+        catch (java.lang.Exception ex) {
+            throw new RuntimeException(String.format("Exception happened. Error: {}", ex.getMessage()), ex.getCause());
         }
 
         configured = true;

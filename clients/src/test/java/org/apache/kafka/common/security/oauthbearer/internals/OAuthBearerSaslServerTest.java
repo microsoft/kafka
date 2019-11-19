@@ -16,7 +16,7 @@
  */
 package org.apache.kafka.common.security.oauthbearer.internals;
 
-import static org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer.AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS;
+import static org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslServer.AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -205,7 +205,7 @@ public class OAuthBearerSaslServerTest {
     @Test
     public void customizedPrincipalComparator() throws Exception {
         Map<String, String> props = new HashMap<>();
-        props.put(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS, "org.apache.kafka.common.security.oauthbearer.internals.MockPrincipalcomparator");
+        props.put(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY, "org.apache.kafka.common.security.oauthbearer.internals.MockPrincipalcomparator");
         SaslServer saslServer1 = new OAuthBearerSaslServer(VALIDATOR_CALLBACK_HANDLER, props);
         saslServer1.evaluateResponse(clientInitialResponse("user"));
     }

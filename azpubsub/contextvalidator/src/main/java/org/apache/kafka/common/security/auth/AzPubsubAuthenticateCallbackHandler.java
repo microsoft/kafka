@@ -1,6 +1,9 @@
 package org.apache.kafka.common.security.auth;
 import azpubsub.kafka.security.auth.InvalidTokenException;
+import azpubsub.kafka.security.auth.NoClaimInTokenException;
+import azpubsub.kafka.security.auth.AuthenticationFailedException;
 import azpubsub.kafka.security.auth.TokenExpiredException;
+import azpubsub.kafka.security.auth.TokenValidationException;
 import azpubsub.kafka.security.auth.TokenValidator;
 import azpubsub.kafka.security.authenticator.AzPubSubOAuthBearerToken;
 import jdk.nashorn.internal.parser.Token;
@@ -136,6 +139,18 @@ public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallback
         catch (TokenExpiredException ex) {
             log.error(String.format("Token is already expired: %s", tokenValue));
             throw new IllegalArgumentException(String.format("The received token is expired. Error: %s", ex.getMessage()));
+        }
+        catch (AuthenticationFailedException ex) {
+            log.error(String.format("Token is already expired: %s", tokenValue));
+            throw new IllegalArgumentException(String.format("The received token is expired. Error: %s", ex.getMessage()));
+        }
+        catch (NoClaimInTokenException ex) {
+            log.error(String.format("Validation of the token is good, but there's no claim in the token. Token: %s", tokenValue));
+            throw new IllegalArgumentException(String.format("Validation of the token is good, but there's no claim in the token. Error: %s", ex.getMessage()));
+        }
+        catch (TokenValidationException ex) {
+            log.error(String.format("There's a validation exception happened when validating the token. Token: %s", tokenValue));
+            throw new IllegalArgumentException(String.format("There's a validation exception happened when validating the token. Error: %s", ex.getMessage()));
         }
     }
 }

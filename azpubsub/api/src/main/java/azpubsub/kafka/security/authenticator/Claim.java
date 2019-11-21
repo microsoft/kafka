@@ -1,5 +1,8 @@
 package azpubsub.kafka.security.authenticator;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Java Claim class mapped from c# claim class defined in dSTS token
  */
@@ -13,14 +16,15 @@ public class Claim implements Comparable<Claim> {
     private String value;
     private String valueType;
 
-    public Claim(String ct,
-                 String iss,
-                 String oriIss,
-                 String lbl,
-                 String nct,
-                 String rct,
-                 String v,
-                 String vt){
+    @JsonCreator
+    public Claim(@JsonProperty("claimType") String ct,
+                 @JsonProperty("issuer") String iss,
+                 @JsonProperty("originalIssuer") String oriIss,
+                 @JsonProperty("label") String lbl,
+                 @JsonProperty("nameClaimType") String nct,
+                 @JsonProperty("roleClaimType") String rct,
+                 @JsonProperty("value") String v,
+                 @JsonProperty("valueType") String vt){
         claimType = ct;
         issuer = iss;
         originalIssuer = oriIss;

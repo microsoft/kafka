@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.{Date, Locale, TimeZone}
 
 import azpubsub.kafka.security.auth.TokenValidator
+import azpubsub.kafka.security.authenticator.AzPubSubOAuthBearerToken
 import kafka.common.{NotificationHandler, ZkNodeChangeNotificationListener}
 import kafka.metrics.KafkaMetricsGroup
 import kafka.network.RequestChannel.Session
@@ -57,7 +58,7 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
   private val lock = new ReentrantReadWriteLock()
   private val retryBackoffMs = 100
   private val retryBackoffJitterMs = 50
-  private var topicsWhiteListed: Set[String] = null
+  private var topicsWhiteListed: mutable.HashSet[String] = new mutable.HashSet[String] {}
 
   protected[auth] var maxUpdateRetries = 10
 
@@ -72,15 +73,24 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
       tokenAuthenticator.configure(javaConfigs)
     }
 
-    periodToValidateTokenInMinutes = configs.get(KafkaConfig.AzpubsubValidateTokenInMinutesProp).get.toString.toInt
-    topicsWhiteListed = configs.get(KafkaConfig.AzPubSubTopicWhiteListProp).get.toString.split(",").distinct.toSet
+
+    if(props.containsKey(KafkaConfig.AzPubSubTopicWhiteListProp)) {
+      topicsWhiteListed = new mutable.HashSet[String] {}
+      val tmpTopics = props.get(KafkaConfig.AzPubSubTopicWhiteListProp).toString.split(",")
+      tmpTopics.foreach(t => topicsWhiteListed.add(t))
+    }
 
     val kafkaConfig = KafkaConfig.fromProps(props, doLog = false)
-    val zkUrl = configs.get(AzPubSubAclAuthorizer.ZkUrlProp).map(_.toString).getOrElse(kafkaConfig.zkConnect)
-    val zkConnectionTimeoutMs = configs.get(AzPubSubAclAuthorizer.ZkConnectionTimeOutProp).map(_.toString.toInt).getOrElse(kafkaConfig.zkConnectionTimeoutMs)
-    val zkSessionTimeOutMs = configs.get(AzPubSubAclAuthorizer.ZkSessionTimeOutProp).map(_.toString.toInt).getOrElse(kafkaConfig.zkSessionTimeoutMs)
-    val zkMaxInFlightRequests = configs.get(AzPubSubAclAuthorizer.ZkMaxInFlightRequests).map(_.toString.toInt).getOrElse(kafkaConfig.zkMaxInFlightRequests)
+    periodToValidateTokenInMinutes = if (props.containsKey(KafkaConfig.AzPubSubTopicWhiteListProp)) props.get(KafkaConfig.AzpubsubValidateTokenInMinutesProp).toString.toInt else kafkaConfig.AzpubsubValidateTokenInMinutes
+    val zkUrl = if(props.containsKey(AzPubSubAclAuthorizer.ZkUrlProp)) props.get(AzPubSubAclAuthorizer.ZkUrlProp).toString else kafkaConfig.zkConnect
+    val zkConnectionTimeoutMs = if(props.containsKey(AzPubSubAclAuthorizer.ZkConnectionTimeOutProp)) props.get(AzPubSubAclAuthorizer.ZkConnectionTimeOutProp).toString.toInt else kafkaConfig.zkConnectionTimeoutMs
+    val zkSessionTimeOutMs = if(props.containsKey(AzPubSubAclAuthorizer.ZkSessionTimeOutProp)) props.get(AzPubSubAclAuthorizer.ZkSessionTimeOutProp).toString.toInt else kafkaConfig.zkSessionTimeoutMs
+    val zkMaxInFlightRequests = if(props.containsKey(AzPubSubAclAuthorizer.ZkMaxInFlightRequests)) props.get(AzPubSubAclAuthorizer.ZkMaxInFlightRequests).toString.toInt else kafkaConfig.zkMaxInFlightRequests
 
+    initializeZookeeperClient(kafkaConfig, zkUrl, zkConnectionTimeoutMs, zkSessionTimeOutMs, zkMaxInFlightRequests)
+  }
+
+   private [auth] def initializeZookeeperClient(kafkaConfig: KafkaConfig, zkUrl: String, zkConnectionTimeoutMs: Int, zkSessionTimeOutMs: Int, zkMaxInFlightRequests: Int) = {
     val time = Time.SYSTEM
     info("zkUrl: " + zkUrl + "; kafkaConfig.zkEnableSecureAcls: " + kafkaConfig.zkEnableSecureAcls);
     zkClient = KafkaZkClient(zkUrl, kafkaConfig.zkEnableSecureAcls, zkSessionTimeOutMs, zkConnectionTimeoutMs,
@@ -125,6 +135,7 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
 
         val acls = getAcls(resource) ++ getAcls(new Resource(resource.resourceType, Resource.WildCardResource))
         debug(s"Acls read from Zookeeper, length: ${acls.size}.")
+        if(acls.isEmpty) return true
 
         session.principal.getPrincipalType match {
 
@@ -143,65 +154,15 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
             /**
               * Check if the current session is using SAML token as authorization id.
               * If it is, retrieve the token and deserialize the JSON string into object of Token class
+              * For dsts token, KafkaPrincipal = new KafkaPrincipal(principalType = "Token", name = "AzPubSubOAuthTBearerToken_JSON_string");
               */
-             //For dsts token, KafkaPrincipal = new KafkaPrincipal(principalType = "Token", name = "acl_json_string");
-            val token   = Json.parseFull(session.principal.getName).get.asJsonObject
-
-            debug(s"token in session: ${token.toString()} ")
-            /**
-              *  If there's a token, then validate if the token is still valid - token not expired.
-              */
-            val formatter = new SimpleDateFormat(AzPubSubAclAuthorizer.Saml2TokenTimeFormatter, Locale.ENGLISH)
-            formatter.setTimeZone(TimeZone.getTimeZone("UTC"))
-            val validFrom = formatter.parse(token("ValidFrom").to[String])
-            val validTo = formatter.parse(token("ValidTo").to[String])
-            val utcNowString = formatter.format(new Date)
-            val currentMoment = formatter.parse(utcNowString)
-
-            if(!cacheTokenLastValidatedTime.contains(token("UniqueId").toString)) {
-              cacheTokenLastValidatedTime += (token("UniqueId").toString -> new Date(0L))
-            }
-
-            //TOKEN cache one --- after one hour/60 MINs, server will re-authenticate the TOKEN again.
-            if(cacheTokenLastValidatedTime(token("UniqueId").toString).toInstant.plus(60, ChronoUnit.MINUTES).isBefore(currentMoment.toInstant)) {
-              if(false == tokenAuthenticator.validateWithTokenExpiredAllowed(token("Base64Token").to[String])){
-                warn(s"token validation failed, token: ${token("Base64Token").to[String]}")
-                return false
+            Json.parseStringAs[AzPubSubOAuthBearerToken](session.principal.getName) match {
+              case Left(ex) => {error(s"Failed to parse token into AzPubSubOAuthBearerToken for client IP address: ${session.clientAddress.toString}, error: ${ex.getMessage}")}
+              case Right(token) => {
+                return authorizeTokenToResource(session, operation, resource, acls, token)
               }
-
-              cacheTokenLastValidatedTime(token("UniqueId").toString) = currentMoment
             }
 
-            if( currentMoment.before(validFrom)){
-              warn(s"The ValidFrom date time of the token is in the future, this is invalid. ValidFrom: ${token("ValidFrom")}, now: ${ currentMoment}")
-              val meterInValidFrom = newMeter(AzPubSubAclAuthorizer.TokenInvalidFromDatetimeRateMs, "invaliddststoken", TimeUnit.SECONDS)
-              meterInValidFrom.mark()
-              return false
-            }
-
-            if( currentMoment.after(validTo)) {
-              warn(s"The token has already expired. ValidTo: ${token("ValidTo")}, now: ${currentMoment}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
-              val meterInvalidTo = newMeter(AzPubSubAclAuthorizer.TokenExpiredRateMs, "invaliddststoken", TimeUnit.SECONDS)
-              meterInvalidTo.mark()
-              return false
-            }
-
-            debug(s"Token is valid. ValidFrom: ${token("ValidFrom")}, ValidTo: ${token("ValidTo")}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
-
-            token("Roles").asJsonArray.iterator.map(_.to[String]).foreach(r => {
-              debug(s"Claim from json token: ${r}")
-              val prin = new KafkaPrincipal(KafkaPrincipal.ROLE_TYPE, r)
-              if(aclMatch(operation, resource, prin, session.clientAddress.getHostAddress, Allow, acls)){
-                debug(s"Authorization for ${prin} operation ${operation} on resource ${resource} succeeded.")
-                val meterValidToken = newMeter(AzPubSubAclAuthorizer.TopicAuthorizationUsingTokenSuccessfulRateMs, "validtoken", TimeUnit.SECONDS)
-                meterValidToken.mark()
-                return true
-              }
-            })
-
-            warn(s"The token doesn't have any role permitted to access the particular topic ${resource.name}.")
-            val meterUnauthorizedToken = newMeter(AzPubSubAclAuthorizer.TokenNotAuthorizedForTopicRateMs, "unauthorizedtoken", TimeUnit.SECONDS)
-            meterUnauthorizedToken.mark()
             return false
           }
           case _ => {
@@ -245,6 +206,65 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
         return true
       }
     }
+  }
+
+  private [auth] def authorizeTokenToResource(session: Session, operation: Operation, resource: Resource, acls: Set[Acl], token: AzPubSubOAuthBearerToken) : Boolean = {
+    val validFrom = new Date((token.getValidFromTicks - 621355968000000000L) / 10000)
+    val validTo = new Date((token.getValidToTicks - 621355968000000000L) / 10000)
+
+    /**
+      * If there's a token, then validate if the token is still valid - token not expired.
+      */
+    val formatter = new SimpleDateFormat(AzPubSubAclAuthorizer.Saml2TokenTimeFormatter, Locale.ENGLISH)
+    formatter.setTimeZone(TimeZone.getTimeZone("UTC"))
+    val utcNowString = formatter.format(new Date)
+    val currentMoment = formatter.parse(utcNowString)
+
+    if (!cacheTokenLastValidatedTime.contains(token.getTokenId)) {
+      cacheTokenLastValidatedTime += (token.getTokenId -> new Date(0L))
+    }
+
+    //TOKEN cache one --- after periodToValidateTokenInMinutes, server will re-authenticate the TOKEN again in case the token gets recalled
+    if (cacheTokenLastValidatedTime(token.getTokenId).toInstant.plus(periodToValidateTokenInMinutes, ChronoUnit.MINUTES).isBefore(currentMoment.toInstant)) {
+      if (false == tokenAuthenticator.validateWithTokenExpiredAllowed(token.getOriginalBase64Token)) {
+        error(s"token validation failed, token: ${token.getOriginalBase64Token}")
+        return false
+      }
+      cacheTokenLastValidatedTime(token.getTokenId) = currentMoment
+    }
+
+    if (currentMoment.before(validFrom)) {
+      warn(s"The ValidFrom date time of the token is in the future, this is invalid. ValidFrom: ${validFrom}, now: ${currentMoment}")
+      val meterInValidFrom = newMeter(AzPubSubAclAuthorizer.TokenInvalidFromDatetimeRateMs, "invaliddststoken", TimeUnit.SECONDS)
+      meterInValidFrom.mark()
+      return false
+    }
+
+    if (currentMoment.after(validTo)) {
+      warn(s"The token has already expired. ValidTo: ${validTo}, now: ${currentMoment}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
+      val meterInvalidTo = newMeter(AzPubSubAclAuthorizer.TokenExpiredRateMs, "invaliddststoken", TimeUnit.SECONDS)
+      meterInvalidTo.mark()
+      return false
+    }
+
+    debug(s"Token is valid. ValidFrom: ${validFrom}, ValidTo: ${validTo}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
+
+    for (i <- 0 to token.getClaims.size()) {
+      val claim = token.getClaims.get(i)
+      debug(s"Validating if the claim from json token is allowed to access the resource: ${claim.getValue}")
+      val principal = new KafkaPrincipal(KafkaPrincipal.ROLE_TYPE, claim.getValue)
+      if (aclMatch(operation, resource, principal, session.clientAddress.getHostAddress, Allow, acls)) {
+        debug(s"Authorization for ${principal} operation ${operation} on resource ${resource} succeeded.")
+        val meterValidToken = newMeter(AzPubSubAclAuthorizer.TopicAuthorizationUsingTokenSuccessfulRateMs, "validtoken", TimeUnit.SECONDS)
+        meterValidToken.mark()
+        return true
+      }
+    }
+
+    warn(s"The token doesn't have any role permitted to access the particular topic ${resource.name}.")
+    val meterUnauthorizedToken = newMeter(AzPubSubAclAuthorizer.TokenNotAuthorizedForTopicRateMs, "unauthorizedtoken", TimeUnit.SECONDS)
+    meterUnauthorizedToken.mark()
+    return false
   }
 
   protected def aclMatch(operations: Operation, resource: Resource, principal: KafkaPrincipal, host: String, permissionType: PermissionType, acls: Set[Acl]): Boolean = {
@@ -347,7 +367,7 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
     VersionedAcls(acls.acls, acls.zkVersion)
   }
 
-  private def loadCache()  {
+  private [auth] def loadCache()  {
     inWriteLock(lock) {
       val resourceTypes = zkClient.getResourceTypes(PatternType.LITERAL)
       for (rType <- resourceTypes) {

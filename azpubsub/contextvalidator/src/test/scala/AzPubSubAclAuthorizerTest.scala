@@ -11,10 +11,12 @@ import org.apache.kafka.common.resource.PatternType
 
 import scala.collection.mutable
 import org.apache.kafka.common.security.auth.KafkaPrincipal
+import org.apache.kafka.common.utils.{SystemTime, Time}
 import org.easymock.EasyMock
 import org.easymock.EasyMock._
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import org.junit.runner.RunWith
+import org.powermock.api.easymock.PowerMock
 import org.powermock.api.support.membermodification.MemberMatcher
 import org.powermock.core.classloader.annotations.{PowerMockIgnore, PrepareForTest}
 import org.powermock.modules.junit4.PowerMockRunner
@@ -33,6 +35,36 @@ object AzPubSubAclAuthorizerTest{
 @PrepareForTest(Array(classOf[org.slf4j.LoggerFactory], classOf[AzPubSubAclAuthorizer], classOf[KafkaMetricsGroup], classOf[KafkaZkClient], classOf[ZooKeeperClient]))
 @PowerMockIgnore(Array("javax.management.*"))
 class AzPubSubAclAuthorizerTest {
+
+      @Test
+      def testConfigurePositive(): Unit = {
+            val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
+              .addMockedMethod("startZkChangeListeners")
+              .addMockedMethod("loadCache")
+              .createMock()
+
+            suppress(MemberMatcher.methodsDeclaredIn(classOf[KafkaZkClient]))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "newGauge"))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "newMeter"))
+            suppress(MemberMatcher.method(classOf[ZooKeeperClient], "newGauge"))
+            suppress(MemberMatcher.method(classOf[ZooKeeperClient], "newMeter"))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "initializeZookeeperClient", classOf[KafkaConfig], classOf[String], classOf[Int], classOf[Int], classOf[Int]))
+
+            EasyMock.replay(authorizer)
+
+            val javaConfigs = new util.HashMap[String, String]()
+            javaConfigs.put(KafkaConfig.AzpubsubTokenValidatorClassProp, AzPubSubAclAuthorizerTest.mockPositiveTokenValidator)
+            javaConfigs.put(KafkaConfig.AzpubsubValidateTokenInMinutesProp, "60")
+            javaConfigs.put(AzPubSubAclAuthorizer.ZkUrlProp, "localhost:2181")
+            javaConfigs.put(AzPubSubAclAuthorizer.ZkSessionTimeOutProp, "50")
+            javaConfigs.put(AzPubSubAclAuthorizer.ZkMaxInFlightRequests, "40")
+            javaConfigs.put(KafkaConfig.ZkConnectProp, "loalhost:2181")
+            javaConfigs.put(KafkaConfig.AzPubSubTopicWhiteListProp, "topic1,topic2")
+
+            authorizer.configure(javaConfigs)
+
+            EasyMock.verify(authorizer)
+      }
 
       @Test(expected = classOf[ClassNotFoundException])
       def testConfigureNegative(): Unit = {
@@ -69,7 +101,7 @@ class AzPubSubAclAuthorizerTest {
           "[" +
           "\"ToAuthenticateAzPubSub\"" +
           "]," +
-          "\"ValidFrom\":\"6/18/2019 7:08:11 AM\"," +
+          "\"validFromTicks\":\"6/18/2019 7:08:11 AM\"," +
           "\"ValidTo\":\"6/19/2079 7:08:11 AM\"," +
           "\"UniqueId\":\"3efcea45-7aae-4fb9-af22-31d6cf9f0b20\"," +
           "\"Base64Token\":" +

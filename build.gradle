@@ -1022,6 +1022,9 @@ project(':azpubsub:api') {
 
   dependencies {
     compile libs.scalaLibrary
+    compile libs.jacksonDatabind
+    compile libs.jacksonJDK8Datatypes
+    compile libs.jacksonJaxrsJsonProvider
 
     testCompile libs.junit
   }
@@ -1134,8 +1137,9 @@ project(':clients') {
     compile libs.lz4
     compile libs.snappy
     compile libs.slf4jApi
-    compileOnly libs.jacksonDatabind // for SASL/OAUTHBEARER bearer token parsing
-    compileOnly libs.jacksonJDK8Datatypes
+    compile libs.jacksonDatabind
+    compile libs.jacksonJDK8Datatypes
+    compile libs.jacksonJaxrsJsonProvider
 
     jacksonDatabindConfig libs.jacksonDatabind // to publish as provided scope dependency.
 
@@ -1144,9 +1148,9 @@ project(':clients') {
     testCompile libs.mockitoCore
 
     testRuntime libs.slf4jlog4j
-    testRuntime libs.jacksonDatabind
-    testRuntime libs.jacksonJDK8Datatypes
-    testCompile libs.jacksonJaxrsJsonProvider
+//    testRuntime libs.jacksonDatabind
+//    testRuntime libs.jacksonJDK8Datatypes
+//    testCompile libs.jacksonJaxrsJsonProvider
   }
 
   task determineCommitId {
@@ -1759,7 +1763,7 @@ project(':connect:runtime') {
     compile project(':connect:transforms')
 
     compile libs.slf4jApi
-    compile libs.jacksonJaxrsJsonProvider
+    compile libs.jacksonJaxrsJsonProvider 
     compile libs.jerseyContainerServlet
     compile libs.jerseyHk2
     compile libs.jaxbApi // Jersey dependency that was available in the JDK before Java 9

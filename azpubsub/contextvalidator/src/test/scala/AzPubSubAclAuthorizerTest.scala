@@ -180,7 +180,7 @@ class AzPubSubAclAuthorizerTest {
       }
 
       @Test
-      def testAzPubSubAclAuthorizerAuthorizeTokenInvalidFromDate(): Unit = {
+      def testAzPubSubAclAuthorizerAuthorizeTokenInvalidFromDateExpiredTokenAllowed(): Unit = {
             val tokenJsonString = "{\"tokenId\":\"_51d8f7bb-3e25-46d1-a617-cf3e49393a28\",\"validFromTicks\":699099674400309000,\"validToTicks\":699099674400310000,\"originalBase64Token\":\"PEFzc2VydGlvbiBqb0E4QUFBQUFxNHpEQU5CZ2txaGtpRzl3MEJBUXNGQURDQml6RUx0ZW1lbnQ+PC9Bc3NlcnRpb24+\",\"claims\":[{\"claimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"zookeeperclienttest-useast.core.windows.net\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"zookeeperclienttest-useast.core.windows.net\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"ToAuthenticate\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://sts.msft.net/computer/DeviceGroup\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"AzPubSub.Autopilot.Co4,AzPubSub.Autopilot.Bn2\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.microsoft.com/accesscontrolservice/2010/07/claims/identityprovider\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"realm://dsts.core.azure-test.net/\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"}]}"
 
             val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
@@ -191,7 +191,7 @@ class AzPubSubAclAuthorizerTest {
             val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
               .addMockedMethod("getAcls", classOf[Resource])
               .createMock()
-            val acls = Set(Acl(new KafkaPrincipal("Role", "NotExistingClaim"), Allow, "*", All))
+            val acls = Set(Acl(new KafkaPrincipal("Role", "ToAuthenticate"), Allow, "*", All))
             EasyMock.expect(authorizer.getAcls(isA(classOf[Resource]))).andReturn(acls).anyTimes()
             suppress(MemberMatcher.methodsDeclaredIn(classOf[KafkaMetricsGroup]))
             suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "newGauge"))
@@ -216,13 +216,13 @@ class AzPubSubAclAuthorizerTest {
 
             EasyMock.replay(authorizer)
 
-            assertAuthorizationAndTokenCache(false, session, resource, authorizer, cache)
+            assertAuthorizationAndTokenCache(true, session, resource, authorizer, cache)
 
             EasyMock.verify(authorizer)
       }
 
       @Test
-      def testAzPubSubAclAuthorizerAuthorizeTokenInvalidToDate(): Unit = {
+      def testAzPubSubAclAuthorizerAuthorizeTokenInvalidToDateExpiredTokenAllowed(): Unit = {
             val tokenJsonString = "{\"tokenId\":\"_51d8f7bb-3e25-46d1-a617-cf3e49393a28\",\"validFromTicks\":637099656400310000,\"validToTicks\":637099656400313010,\"originalBase64Token\":\"PEFzc2VydGlvbiBqb0E4QUFBQUFxNHpEQU5CZ2txaGtpRzl3MEJBUXNGQURDQml6RUx0ZW1lbnQ+PC9Bc3NlcnRpb24+\",\"claims\":[{\"claimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"zookeeperclienttest-useast.core.windows.net\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"zookeeperclienttest-useast.core.windows.net\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"ToAuthenticate\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://sts.msft.net/computer/DeviceGroup\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"AzPubSub.Autopilot.Co4,AzPubSub.Autopilot.Bn2\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.microsoft.com/accesscontrolservice/2010/07/claims/identityprovider\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"realm://dsts.core.azure-test.net/\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"}]}"
 
             val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
@@ -233,7 +233,7 @@ class AzPubSubAclAuthorizerTest {
             val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
               .addMockedMethod("getAcls", classOf[Resource])
               .createMock()
-            val acls = Set(Acl(new KafkaPrincipal("Role", "NotExistingClaim"), Allow, "*", All))
+            val acls = Set(Acl(new KafkaPrincipal("Role", "ToAuthenticate"), Allow, "*", All))
             EasyMock.expect(authorizer.getAcls(isA(classOf[Resource]))).andReturn(acls).anyTimes()
             suppress(MemberMatcher.methodsDeclaredIn(classOf[KafkaMetricsGroup]))
             suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "newGauge"))
@@ -258,7 +258,49 @@ class AzPubSubAclAuthorizerTest {
 
             EasyMock.replay(authorizer)
 
+            assertAuthorizationAndTokenCache(true, session, resource, authorizer, cache)
+            EasyMock.verify(authorizer)
+      }
+
+      @Test
+      def testAzPubSubAclAuthorizerAuthorizeTokenInvalidFromDateExpiredTokenNotAllowed(): Unit = {
+            val tokenJsonString = "{\"tokenId\":\"_51d8f7bb-3e25-46d1-a617-cf3e49393a28\",\"validFromTicks\":699099674400309000,\"validToTicks\":699099674400310000,\"originalBase64Token\":\"PEFzc2VydGlvbiBqb0E4QUFBQUFxNHpEQU5CZ2txaGtpRzl3MEJBUXNGQURDQml6RUx0ZW1lbnQ+PC9Bc3NlcnRpb24+\",\"claims\":[{\"claimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"zookeeperclienttest-useast.core.windows.net\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"zookeeperclienttest-useast.core.windows.net\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"ToAuthenticate\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://sts.msft.net/computer/DeviceGroup\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"AzPubSub.Autopilot.Co4,AzPubSub.Autopilot.Bn2\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"},{\"claimType\":\"http://schemas.microsoft.com/accesscontrolservice/2010/07/claims/identityprovider\",\"issuer\":\"realm://dsts.core.azure-test.net/\",\"originalIssuer\":\"realm://dsts.core.azure-test.net/\",\"label\":null,\"nameClaimType\":\"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name\",\"roleClaimType\":\"http://schemas.microsoft.com/ws/2008/06/identity/claims/role\",\"value\":\"realm://dsts.core.azure-test.net/\",\"valueType\":\"http://www.w3.org/2001/XMLSchema#string\"}]}"
+
+            val principal = new KafkaPrincipal(KafkaPrincipal.TOKEN_TYPE, tokenJsonString)
+            val localHost = java.net.InetAddress.getLocalHost
+            val session = Session(principal, localHost)
+            val resource = Resource(Topic, "testTopic", PatternType.LITERAL)
+
+            val authorizer: AzPubSubAclAuthorizer = EasyMock.partialMockBuilder(classOf[AzPubSubAclAuthorizer])
+              .addMockedMethod("getAcls", classOf[Resource])
+              .createMock()
+            val acls = Set(Acl(new KafkaPrincipal("Role", "ToAuthenticate"), Allow, "*", All))
+            EasyMock.expect(authorizer.getAcls(isA(classOf[Resource]))).andReturn(acls).anyTimes()
+            suppress(MemberMatcher.methodsDeclaredIn(classOf[KafkaMetricsGroup]))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "newGauge"))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "markMetricsForAclAuthorizationRequest"))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "markMetricsForInvalidFromDateInToken"))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "markMetricsForInvalidToDateInToken"))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "markMetricsForUnauthorizedToken"))
+            suppress(MemberMatcher.method(classOf[AzPubSubAclAuthorizer], "markMetricsForTokenIsAuthorized"))
+
+            val logger: org.slf4j.Logger = EasyMock.mock(classOf[org.slf4j.Logger])
+
+            EasyMock.expect(logger.info(isA(classOf[String]))).andVoid().anyTimes()
+            EasyMock.expect(logger.debug(isA(classOf[String]))).andVoid().anyTimes()
+            EasyMock.expect(logger.warn(isA(classOf[String]))).andVoid().anyTimes()
+
+            val cache = new mutable.HashMap[String, Date]
+            val validator = new mockNegativeTokenValidator
+
+            Whitebox.setInternalState(authorizer, "cacheTokenLastValidatedTime", cache.asInstanceOf[Any])
+            Whitebox.setInternalState(authorizer, "tokenAuthenticator", validator.asInstanceOf[Any])
+            Whitebox.setInternalState(authorizer, "topicsWhiteListed", mutable.HashSet[String]("topic1", "topic2").asInstanceOf[Any])
+
+            EasyMock.replay(authorizer)
+
             assertAuthorizationAndTokenCache(false, session, resource, authorizer, cache)
+
             EasyMock.verify(authorizer)
       }
 

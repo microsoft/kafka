@@ -239,18 +239,6 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
       cacheTokenLastValidatedTime(token.getTokenId) = currentMoment
     }
 
-    if (currentMoment.before(validFrom)) {
-      warn(s"The ValidFrom date time of the token is in the future, this is invalid. ValidFrom: ${validFrom}, now: ${currentMoment}")
-      markMetricsForInvalidFromDateInToken
-      return false
-    }
-
-    if (currentMoment.after(validTo)) {
-      warn(s"The token has already expired. ValidTo: ${validTo}, now: ${currentMoment}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
-      markMetricsForInvalidToDateInToken
-      return false
-    }
-
     debug(s"Token is valid. ValidFrom: ${validFrom}, ValidTo: ${validTo}. Topic to access: ${resource.name}, Client Address: ${session.clientAddress.getHostAddress}")
 
     for (i <- 0 until token.getClaims.size()) {

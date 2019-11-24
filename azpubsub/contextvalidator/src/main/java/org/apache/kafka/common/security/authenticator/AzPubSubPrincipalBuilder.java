@@ -1,4 +1,4 @@
-package org.apache.kafka.common.security.authenticator;
+package kafka.security.auth;
 
 import azpubsub.kafka.security.authenticator.AzPubSubPrincipal;
 import azpubsub.kafka.security.authenticator.SaslAuthenticationContextValidator;

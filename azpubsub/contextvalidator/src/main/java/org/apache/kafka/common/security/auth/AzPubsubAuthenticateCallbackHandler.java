@@ -1,4 +1,4 @@
-package org.apache.kafka.common.security.auth;
+package kafka.security.auth;
 import azpubsub.kafka.security.auth.InvalidTokenException;
 import azpubsub.kafka.security.auth.NoClaimInTokenException;
 import azpubsub.kafka.security.auth.AuthenticationFailedException;
@@ -21,7 +21,10 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
+import java.io.*;
 import java.util.*;
+
+import static java.lang.System.getProperty;
 
 public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallbackHandler{
     private static final String TokenValidatorClassPathKey = "azpubsub.token.validator.class";
@@ -36,27 +39,47 @@ public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallback
     public void configure(Map<String, ?> configs,
                           String saslMechanism,
                           List<AppConfigurationEntry> jaasConfigEntries) {
-        if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))
-            throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
+        String azpubsubPropertiesFilePath = System.getProperty("azpubsub.properties");
+            try (InputStream inputStream = new FileInputStream(new File(azpubsubPropertiesFilePath))) {
+                Properties properties = new Properties();
 
-        if(!configs.containsKey(TokenValidatorClassPathKey)) {
-            throw new IllegalArgumentException(String.format("No token validator class is set via %s", TokenValidatorClassPathKey));
-        }
+                properties.load(inputStream);
+                for (Map.Entry<String, ?> e: configs.entrySet()
+                     ) {
+                    if(null != e && null != e.getKey() && null != e.getValue()) {
+                        properties.putIfAbsent(e.getKey(), e.getValue());
+                    }
+                }
 
-        String validatorClassName = configs.get(TokenValidatorClassPathKey).toString();
+                @SuppressWarnings({ "unchecked", "rawtypes" })
+                Map<String, ?> allConfigs = new HashMap(properties);
 
-        try {
-            tokenValidator = Utils.newInstance(validatorClassName, TokenValidator.class);
-            tokenValidator.configure(configs);
-        }
-        catch (ClassNotFoundException ex) {
-            throw new IllegalArgumentException(String.format("Class %s configured by %s is not found! Error: %s", validatorClassName, TokenValidatorClassPathKey, ex.getMessage() ));
-        }
-        catch (java.lang.Exception ex) {
-            throw new RuntimeException(String.format("Exception happened. Error: {}", ex.getMessage()), ex.getCause());
-        }
+                if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))
+                    throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
 
-        configured = true;
+                if(!allConfigs.containsKey(TokenValidatorClassPathKey)) {
+                    throw new IllegalArgumentException(String.format("No token validator class is set via %s", TokenValidatorClassPathKey));
+                }
+
+                String validatorClassName = configs.get(TokenValidatorClassPathKey).toString();
+
+                try {
+                    tokenValidator = Utils.newInstance(validatorClassName, TokenValidator.class);
+                    tokenValidator.configure(allConfigs);
+                }
+                catch (ClassNotFoundException ex) {
+                    throw new IllegalArgumentException(String.format("Class %s configured by %s is not found! Error: %s", validatorClassName, TokenValidatorClassPathKey, ex.getMessage() ));
+                }
+                catch (java.lang.Exception ex) {
+                    throw new RuntimeException(String.format("Exception happened. Error: {}", ex.getMessage()), ex.getCause());
+                }
+
+                configured = true;
+            }
+            catch (IOException ex) {
+
+            }
+
     }
 
     public boolean configured() {

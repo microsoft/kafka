@@ -272,20 +272,10 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
     meterUnauthorizedToken.mark()
   }
 
-  private def markMetricsForInvalidToDateInToken() = {
-    val meterInvalidTo = newMeter(AzPubSubAclAuthorizer.TokenExpiredRateMs, "invaliddststoken", TimeUnit.SECONDS)
-    meterInvalidTo.mark()
-  }
-
-  private def markMetricsForInvalidFromDateInToken() = {
-    val meterInvalidFrom = newMeter(AzPubSubAclAuthorizer.TokenInvalidFromDatetimeRateMs, "invaliddststoken", TimeUnit.SECONDS)
-    meterInvalidFrom.mark()
-  }
-
   protected def aclMatch(operations: Operation, resource: Resource, principal: KafkaPrincipal, host: String, permissionType: PermissionType, acls: Set[Acl]): Boolean = {
     acls.find { acl =>
       acl.permissionType == permissionType &&
-        (acl.principal == principal //USER:ANONYMOUS
+        (acl.principal == principal
           || (principal.getPrincipalType == KafkaPrincipal.USER_TYPE && acl.principal == KafkaPrincipal.WildCardUserTypePrincipal)
           || (principal.getPrincipalType == KafkaPrincipal.ROLE_TYPE && acl.principal == KafkaPrincipal.WildCardRoleTypePrincipal ) ) &&
         (operations == acl.operation || acl.operation == All) &&

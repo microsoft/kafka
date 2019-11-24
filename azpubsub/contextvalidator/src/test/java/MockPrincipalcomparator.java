@@ -1,4 +1,3 @@
-package org.apache.kafka.common.security.oauthbearer.internals;
 
 import java.util.Comparator;
 

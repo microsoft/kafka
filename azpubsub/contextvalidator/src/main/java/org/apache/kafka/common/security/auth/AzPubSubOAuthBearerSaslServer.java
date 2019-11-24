@@ -23,6 +23,8 @@ import org.apache.kafka.common.security.authenticator.SaslInternalConfigs;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerExtensionsValidatorCallback;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
+import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerClientInitialResponse;
+import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslClient;
 import org.apache.kafka.common.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,8 +50,10 @@ import java.util.Objects;
  * in a custom authorizer (to authorize based on JWT claims rather than ACLs,
  * for example).
  */
+
 public class AzPubSubOAuthBearerSaslServer implements SaslServer {
 
+    static final byte BYTE_CONTROL_A = (byte) 0x01;
     private static final Logger log = LoggerFactory.getLogger(AzPubSubOAuthBearerSaslServer.class);
     private static final String NEGOTIATED_PROPERTY_KEY_TOKEN = AzPubSubOAuthBearerLoginModule.OAUTHBEARER_MECHANISM + ".token";
     private static final String INTERNAL_ERROR_ON_SERVER = "Authentication could not be performed due to an internal error on the server";
@@ -87,7 +91,7 @@ public class AzPubSubOAuthBearerSaslServer implements SaslServer {
      */
     @Override
     public byte[] evaluateResponse(byte[] response) throws SaslException, SaslAuthenticationException {
-        if (response.length == 1 && response[0] == OAuthBearerSaslClient.BYTE_CONTROL_A && errorMessage != null) {
+        if (response.length == 1 && response[0] == BYTE_CONTROL_A && errorMessage != null) {
             log.debug("Received %x01 response from client after it received our error");
             throw new SaslAuthenticationException(errorMessage);
         }
@@ -113,7 +117,7 @@ public class AzPubSubOAuthBearerSaslServer implements SaslServer {
 
     @Override
     public String getMechanismName() {
-        return OAuthBearerLoginModule.OAUTHBEARER_MECHANISM;
+        return AzPubSubOAuthBearerLoginModule.OAUTHBEARER_MECHANISM;
     }
 
     @Override
@@ -244,7 +248,7 @@ public class AzPubSubOAuthBearerSaslServer implements SaslServer {
 
     public static String[] mechanismNamesCompatibleWithPolicy(Map<String, ?> props) {
         return props != null && "true".equals(String.valueOf(props.get(Sasl.POLICY_NOPLAINTEXT))) ? new String[] {}
-                : new String[] {OAuthBearerLoginModule.OAUTHBEARER_MECHANISM};
+                : new String[] {AzPubSubOAuthBearerLoginModule.OAUTHBEARER_MECHANISM};
     }
 
     public static class AzPubSubOAuthBearerSaslServerFactory implements SaslServerFactory {

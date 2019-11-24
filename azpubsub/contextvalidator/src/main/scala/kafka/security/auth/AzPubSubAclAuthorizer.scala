@@ -257,27 +257,27 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
     return false
   }
 
-  private def markMetricsForTokenIsAuthorized = {
+  private def markMetricsForTokenIsAuthorized() = {
     val meterValidToken = newMeter(AzPubSubAclAuthorizer.TopicAuthorizationUsingTokenSuccessfulRateMs, "validtoken", TimeUnit.SECONDS)
     meterValidToken.mark()
   }
 
-  private def markMetricsForAclAuthorizationRequest = {
+  private def markMetricsForAclAuthorizationRequest() = {
     val meterAclAuthorizationRequest = newMeter(AzPubSubAclAuthorizer.AzPubSubAclAuthorizingRequest, "aclauthorizationrequest", TimeUnit.SECONDS)
     meterAclAuthorizationRequest.mark()
   }
 
-  private def markMetricsForUnauthorizedToken = {
+  private def markMetricsForUnauthorizedToken() = {
     val meterUnauthorizedToken = newMeter(AzPubSubAclAuthorizer.TokenNotAuthorizedForTopicRateMs, "unauthorizedtoken", TimeUnit.SECONDS)
     meterUnauthorizedToken.mark()
   }
 
-  private def markMetricsForInvalidToDateInToken = {
+  private def markMetricsForInvalidToDateInToken() = {
     val meterInvalidTo = newMeter(AzPubSubAclAuthorizer.TokenExpiredRateMs, "invaliddststoken", TimeUnit.SECONDS)
     meterInvalidTo.mark()
   }
 
-  private def markMetricsForInvalidFromDateInToken = {
+  private def markMetricsForInvalidFromDateInToken() = {
     val meterInvalidFrom = newMeter(AzPubSubAclAuthorizer.TokenInvalidFromDatetimeRateMs, "invaliddststoken", TimeUnit.SECONDS)
     meterInvalidFrom.mark()
   }

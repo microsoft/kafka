@@ -19,7 +19,6 @@ package org.apache.kafka.common.security.oauthbearer.internals;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 
@@ -62,16 +61,12 @@ public class OAuthBearerSaslServer implements SaslServer {
     private OAuthBearerToken tokenForNegotiatedProperty = null;
     private String errorMessage = null;
     private SaslExtensions extensions;
-    private final Map<String, ?> props ;
 
-    public static final String  AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY = "azpubsub.principal.comparator.class";
-
-    public OAuthBearerSaslServer(CallbackHandler callbackHandler, Map<String, ?> props) {
+    public OAuthBearerSaslServer(CallbackHandler callbackHandler) {
         if (!(Objects.requireNonNull(callbackHandler) instanceof AuthenticateCallbackHandler))
             throw new IllegalArgumentException(String.format("Callback handler must be castable to %s: %s",
                     AuthenticateCallbackHandler.class.getName(), callbackHandler.getClass().getName()));
         this.callbackHandler = (AuthenticateCallbackHandler) callbackHandler;
-        this.props = props;
     }
 
     /**
@@ -174,7 +169,7 @@ public class OAuthBearerSaslServer implements SaslServer {
          * specification, but it must match the principal name if it is specified.
          */
 
-        if (!authorizationId.isEmpty() && !comparePrincipals(authorizationId, token.principalName())) {
+        if (!authorizationId.isEmpty() && authorizationId.equals(token.principalName())) {
                throw new SaslAuthenticationException(String.format(
                        "Authentication failed: Client requested an authorization id (%s) that is different from the token's principal name (%s)",
                        authorizationId, token.principalName()));
@@ -187,24 +182,6 @@ public class OAuthBearerSaslServer implements SaslServer {
         complete = true;
         log.debug("Successfully authenticate User={}", token.principalName());
         return new byte[0];
-    }
-
-    @SuppressWarnings("unchecked")
-    public boolean comparePrincipals(String principal1, String principal2) {
-       if(null != props && props.containsKey(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY)) {
-           try {
-               Comparator myComparator = Utils.newInstance(this.props.get(AZPUBSUB_PRINCIPAL_COMPARATOR_CLASS_KEY).toString(), Comparator.class);
-
-               if(null != myComparator) {
-                  return 0 == myComparator.compare(principal1, principal2);
-               }
-           }
-           catch (ClassNotFoundException ex) {
-               throw new IllegalArgumentException(String.format("Class is not found: {}, configured via: setting azpubsub.principal.comparator.class", this.props.get("azpubsub.principal.comparator.class").toString()), ex.getCause());
-           }
-       }
-
-        return principal1.equals(principal2);
     }
 
     private Map<String, String> processExtensions(OAuthBearerToken token, SaslExtensions extensions) throws SaslException {
@@ -256,7 +233,7 @@ public class OAuthBearerSaslServer implements SaslServer {
             String[] mechanismNamesCompatibleWithPolicy = getMechanismNames(props);
             for (int i = 0; i < mechanismNamesCompatibleWithPolicy.length; i++) {
                 if (mechanismNamesCompatibleWithPolicy[i].equals(mechanism)) {
-                    return new OAuthBearerSaslServer(callbackHandler, props);
+                    return new OAuthBearerSaslServer(callbackHandler);
                 }
             }
             return null;

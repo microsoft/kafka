@@ -21,6 +21,8 @@ import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.auth.Login;
 import org.apache.kafka.common.security.auth.SaslExtensions;
 import org.apache.kafka.common.security.auth.SaslExtensionsCallback;
+import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
+import org.apache.kafka.common.security.oauthbearer.OAuthBearerTokenCallback;
 import org.apache.kafka.common.security.oauthbearer.internals.OAuthBearerSaslClientProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,7 +245,7 @@ public class AzPubSubOAuthBearerLoginModule implements LoginModule {
      *   abort()      : LOGGED_IN_NOT_COMMITTED => NOT_LOGGED_IN
      *   logout()     : Any state => NOT_LOGGED_IN
      */
-    private enum LoginState {
+    public enum LoginState {
         NOT_LOGGED_IN,
         LOGGED_IN_NOT_COMMITTED,
         COMMITTED
@@ -253,7 +255,7 @@ public class AzPubSubOAuthBearerLoginModule implements LoginModule {
      * The SASL Mechanism name for OAuth 2: {@code OAUTHBEARER}
      */
     public static final String OAUTHBEARER_MECHANISM = "OAUTHBEARER";
-    private static final Logger log = LoggerFactory.getLogger(OAuthBearerLoginModule.class);
+    private static final Logger log = LoggerFactory.getLogger(AzPubSubOAuthBearerLoginModule.class);
     private static final SaslExtensions EMPTY_EXTENSIONS = new SaslExtensions(Collections.emptyMap());
     private Subject subject = null;
     private AuthenticateCallbackHandler callbackHandler = null;

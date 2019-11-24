@@ -28,7 +28,7 @@ public class AzPubSubOAuthBearerSaslServerProvider extends Provider {
     protected AzPubSubOAuthBearerSaslServerProvider() {
         super("SASL/OAUTHBEARER Server Provider", 1.0, "SASL/OAUTHBEARER Server Provider for Kafka");
         put("SaslServerFactory." + AzPubSubOAuthBearerLoginModule.OAUTHBEARER_MECHANISM,
-                kafka.security.auth.AzPubSubOAuthBearerSaslServerFactory.class.getName());
+                AzPubSubOAuthBearerSaslServer.AzPubSubOAuthBearerSaslServerFactory.class.getName());
     }
 
     public static void initialize() {

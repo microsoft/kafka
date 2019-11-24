@@ -6,8 +6,8 @@ import azpubsub.kafka.security.auth.TokenExpiredException;
 import azpubsub.kafka.security.auth.TokenValidationException;
 import azpubsub.kafka.security.auth.TokenValidator;
 import azpubsub.kafka.security.authenticator.AzPubSubOAuthBearerToken;
-import jdk.nashorn.internal.parser.Token;
 import kafka.utils.Json;
+import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerExtensionsValidatorCallback;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -24,14 +24,11 @@ import javax.security.auth.login.AppConfigurationEntry;
 import java.io.*;
 import java.util.*;
 
-import static java.lang.System.getProperty;
-
 public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallbackHandler{
     private static final String TokenValidatorClassPathKey = "azpubsub.token.validator.class";
 
     private static final Logger log = LoggerFactory.getLogger(AzPubsubAuthenticateCallbackHandler.class);
     private boolean configured = false;
-    private Map<String, String> moduleOptions = null;
     private TokenValidator tokenValidator = null;
 
     @SuppressWarnings("unchecked")

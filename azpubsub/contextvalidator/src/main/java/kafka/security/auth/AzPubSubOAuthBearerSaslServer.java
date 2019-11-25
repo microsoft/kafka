@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kafka.security.auth;
+package azpubsub.contextvalidator.src.main.java.kafka.security.auth;
 
+import kafka.security.auth.AzPubSubOAuthBearerLoginModule;
 import org.apache.kafka.common.errors.SaslAuthenticationException;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.auth.SaslExtensions;

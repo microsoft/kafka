@@ -1,4 +1,4 @@
-package kafka.security.auth;
+package azpubsub.contextvalidator.src.main.java.kafka.security.auth;
 import azpubsub.kafka.security.auth.InvalidTokenException;
 import azpubsub.kafka.security.auth.NoClaimInTokenException;
 import azpubsub.kafka.security.auth.AuthenticationFailedException;

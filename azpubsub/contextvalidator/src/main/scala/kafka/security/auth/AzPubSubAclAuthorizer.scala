@@ -1,4 +1,4 @@
-package kafka.security.auth
+package azpubsub.contextvalidator.kafka.security.auth
 
 import java.net.InetAddress
 import java.nio.charset.StandardCharsets
@@ -13,7 +13,8 @@ import azpubsub.kafka.security.authenticator.AzPubSubOAuthBearerToken
 import kafka.common.{NotificationHandler, ZkNodeChangeNotificationListener}
 import kafka.metrics.KafkaMetricsGroup
 import kafka.network.RequestChannel.Session
-import kafka.security.auth.AzPubSubAclAuthorizer.VersionedAcls
+import kafka.security.auth.{Acl, All, Allow, Authorizer, DelegationToken, Describe, Group, Operation, PermissionType, Resource, ResourceType, Topic, TransactionalId}
+import azpubsub.contextvalidator.kafka.security.auth.AzPubSubAclAuthorizer.VersionedAcls
 import kafka.server.KafkaConfig
 import kafka.utils.CoreUtils.{inReadLock, inWriteLock}
 import kafka.utils.{CoreUtils, Json}

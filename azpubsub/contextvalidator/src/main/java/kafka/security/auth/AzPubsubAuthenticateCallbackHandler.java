@@ -1,4 +1,5 @@
-package azpubsub.contextvalidator.src.main.java.kafka.security.auth;
+package azpubsub.contextvalidator.kafka.security.auth;
+
 import azpubsub.kafka.security.auth.InvalidTokenException;
 import azpubsub.kafka.security.auth.NoClaimInTokenException;
 import azpubsub.kafka.security.auth.AuthenticationFailedException;
@@ -36,6 +37,8 @@ public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallback
     public void configure(Map<String, ?> configs,
                           String saslMechanism,
                           List<AppConfigurationEntry> jaasConfigEntries) {
+
+        Map<String, ?> all = azpubsub.contextvalidator.kafka.security.auth.Utils.getAzPubSubConfig(configs);
         String azpubsubPropertiesFilePath = System.getProperty("azpubsub.properties");
             try (InputStream inputStream = new FileInputStream(new File(azpubsubPropertiesFilePath))) {
                 Properties properties = new Properties();

@@ -65,25 +65,26 @@ class AzPubSubAclAuthorizer extends Authorizer with KafkaMetricsGroup {
   protected[auth] var maxUpdateRetries = 10
 
   override def configure(javaConfigs: java.util.Map[String, _]): Unit = {
-    val configs = javaConfigs.asScala
+    val allConfigs = ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(javaConfigs);
+    val configs = allConfigs.asScala
     val props = new java.util.Properties()
     configs.foreach { case (key, value) => props.put(key, value.toString) }
 
-    tokenAuthenticator = CoreUtils.createObject[TokenValidator](configs.get(KafkaConfig.AzpubsubTokenValidatorClassProp).get.toString)
+    tokenAuthenticator = CoreUtils.createObject[TokenValidator](props.get(ConfigUtils.AzpubsubTokenValidatorClassPathKey).toString)
 
     if(null != tokenAuthenticator) {
-      tokenAuthenticator.configure(javaConfigs)
+      tokenAuthenticator.configure(allConfigs)
     }
 
 
-    if(props.containsKey(KafkaConfig.AzPubSubTopicWhiteListProp)) {
+    if(props.containsKey(ConfigUtils.AzPubSubTopicWhiteListProp)) {
       topicsWhiteListed = new mutable.HashSet[String] {}
-      val tmpTopics = props.get(KafkaConfig.AzPubSubTopicWhiteListProp).toString.split(",")
+      val tmpTopics = props.get(ConfigUtils.AzPubSubTopicWhiteListProp).toString.split(",")
       tmpTopics.foreach(t => topicsWhiteListed.add(t))
     }
 
     val kafkaConfig = KafkaConfig.fromProps(props, doLog = false)
-    periodToValidateTokenInMinutes = if (props.containsKey(KafkaConfig.AzPubSubTopicWhiteListProp)) props.get(KafkaConfig.AzpubsubValidateTokenInMinutesProp).toString.toInt else kafkaConfig.AzpubsubValidateTokenInMinutes
+    periodToValidateTokenInMinutes = if (props.containsKey(ConfigUtils.AzPubSubTopicWhiteListProp)) props.get(ConfigUtils.AzpubsubValidateTokenInMinutesProp).toString.toInt else ConfigUtils.AzpubsubValidateTokenInMinutes
     val zkUrl = if(props.containsKey(AzPubSubAclAuthorizer.ZkUrlProp)) props.get(AzPubSubAclAuthorizer.ZkUrlProp).toString else kafkaConfig.zkConnect
     val zkConnectionTimeoutMs = if(props.containsKey(AzPubSubAclAuthorizer.ZkConnectionTimeOutProp)) props.get(AzPubSubAclAuthorizer.ZkConnectionTimeOutProp).toString.toInt else kafkaConfig.zkConnectionTimeoutMs
     val zkSessionTimeOutMs = if(props.containsKey(AzPubSubAclAuthorizer.ZkSessionTimeOutProp)) props.get(AzPubSubAclAuthorizer.ZkSessionTimeOutProp).toString.toInt else kafkaConfig.zkSessionTimeoutMs

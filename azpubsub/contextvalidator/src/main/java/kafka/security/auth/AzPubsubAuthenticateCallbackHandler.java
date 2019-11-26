@@ -7,6 +7,7 @@ import azpubsub.kafka.security.auth.TokenExpiredException;
 import azpubsub.kafka.security.auth.TokenValidationException;
 import azpubsub.kafka.security.auth.TokenValidator;
 import azpubsub.kafka.security.authenticator.AzPubSubOAuthBearerToken;
+import azpubsub.contextvalidator.kafka.security.auth.ConfigUtils;
 import kafka.utils.Json;
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerExtensionsValidatorCallback;
@@ -26,8 +27,6 @@ import java.io.*;
 import java.util.*;
 
 public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallbackHandler{
-    private static final String TokenValidatorClassPathKey = "azpubsub.token.validator.class";
-
     private static final Logger log = LoggerFactory.getLogger(AzPubsubAuthenticateCallbackHandler.class);
     private boolean configured = false;
     private TokenValidator tokenValidator = null;
@@ -38,48 +37,33 @@ public class AzPubsubAuthenticateCallbackHandler implements AuthenticateCallback
                           String saslMechanism,
                           List<AppConfigurationEntry> jaasConfigEntries) {
 
-        Map<String, ?> all = azpubsub.contextvalidator.kafka.security.auth.Utils.getAzPubSubConfig(configs);
-        String azpubsubPropertiesFilePath = System.getProperty("azpubsub.properties");
-            try (InputStream inputStream = new FileInputStream(new File(azpubsubPropertiesFilePath))) {
-                Properties properties = new Properties();
+        Map<String, ?> allConfigs = ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs);
 
-                properties.load(inputStream);
-                for (Map.Entry<String, ?> e: configs.entrySet()
-                     ) {
-                    if(null != e && null != e.getKey() && null != e.getValue()) {
-                        properties.putIfAbsent(e.getKey(), e.getValue());
-                    }
-                }
+        if(null == allConfigs) {
+            throw new IllegalArgumentException("Failed to read AzPubSub properties or failed to merge it to global Kafka configs");
+        }
 
-                @SuppressWarnings({ "unchecked", "rawtypes" })
-                Map<String, ?> allConfigs = new HashMap(properties);
+        if (!AzPubSubOAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))
+            throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
 
-                if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))
-                    throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
+        if(!allConfigs.containsKey(ConfigUtils.AzpubsubTokenValidatorClassPathKey)) {
+            throw new IllegalArgumentException(String.format("No token validator class is set via %s", ConfigUtils.AzpubsubTokenValidatorClassPathKey));
+        }
 
-                if(!allConfigs.containsKey(TokenValidatorClassPathKey)) {
-                    throw new IllegalArgumentException(String.format("No token validator class is set via %s", TokenValidatorClassPathKey));
-                }
+        String validatorClassName = allConfigs.get(ConfigUtils.AzpubsubTokenValidatorClassPathKey).toString();
 
-                String validatorClassName = configs.get(TokenValidatorClassPathKey).toString();
+        try {
+            tokenValidator = Utils.newInstance(validatorClassName, TokenValidator.class);
+            tokenValidator.configure(allConfigs);
+        }
+        catch (ClassNotFoundException ex) {
+            throw new IllegalArgumentException(String.format("Class %s configured by %s is not found! Error: %s", validatorClassName, ConfigUtils.AzpubsubTokenValidatorClassPathKey, ex.getMessage() ));
+        }
+        catch (java.lang.Exception ex) {
+            throw new RuntimeException(String.format("Exception happened. Error: {}", ex.getMessage()), ex.getCause());
+        }
 
-                try {
-                    tokenValidator = Utils.newInstance(validatorClassName, TokenValidator.class);
-                    tokenValidator.configure(allConfigs);
-                }
-                catch (ClassNotFoundException ex) {
-                    throw new IllegalArgumentException(String.format("Class %s configured by %s is not found! Error: %s", validatorClassName, TokenValidatorClassPathKey, ex.getMessage() ));
-                }
-                catch (java.lang.Exception ex) {
-                    throw new RuntimeException(String.format("Exception happened. Error: {}", ex.getMessage()), ex.getCause());
-                }
-
-                configured = true;
-            }
-            catch (IOException ex) {
-
-            }
-
+        configured = true;
     }
 
     public boolean configured() {

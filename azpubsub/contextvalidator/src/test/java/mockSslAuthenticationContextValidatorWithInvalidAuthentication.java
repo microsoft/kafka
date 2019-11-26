@@ -1,3 +1,5 @@
+package azpubsub.contextvalidator.kafka.security.test;
+
 import azpubsub.kafka.security.authenticator.AzPubSubPrincipal;
 import azpubsub.kafka.security.authenticator.SslAuthenticationContextValidator;
 
@@ -11,4 +13,5 @@ public class mockSslAuthenticationContextValidatorWithInvalidAuthentication impl
     public AzPubSubPrincipal authenticate(SSLSession sslSession) {
         return null;
     }
+
 }

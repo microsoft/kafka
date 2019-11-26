@@ -1,13 +1,12 @@
-import azpubsub.kafka.security.authenticator.AzPubSubPrincipal;
-import azpubsub.kafka.security.authenticator.SaslAuthenticationContextValidator;
-import azpubsub.kafka.security.authenticator.SslAuthenticationContextValidator;
-import kafka.server.KafkaConfig;
+package azpubsub.contextvalidator.kafka.security.test;
+
+import azpubsub.contextvalidator.kafka.security.auth.ConfigUtils;
 import org.apache.kafka.common.errors.IllegalSaslStateException;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.security.auth.SslAuthenticationContext;
-import org.apache.kafka.common.security.authenticator.AzPubSubPrincipalBuilder;
+import azpubsub.contextvalidator.kafka.security.auth.AzPubSubPrincipalBuilder;
 import org.apache.kafka.common.utils.Utils;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -22,22 +21,16 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import org.slf4j.Logger;
 
-import javax.net.ssl.ExtendedSSLSession;
 import javax.net.ssl.SSLSession;
-import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslServer;
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.HashMap;
 
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({ConfigUtils.class, Utils.class})
 public class AzPubSubPrincipalBuilderTest {
-    private final String AzPubSubSslAuthenticationValidatorClass = "azpubsub.ssl.authentication.validator.class";
-    private final String AzPubSubSaslAuthenticationValidatorClass = "azpubsub.sasl.authentication.validator.class";
-    private final String MockPositiveSslAuthenticationContextValidator = "mockPositiveSslAuthenticationContextValidator";
-    private final String MockPositiveSaslAuthenticationValidator = "mockPositiveSaslAuthenticationContextValidator";
-    private final String MockNegativeSslAuthenticationContextValidator = "mockNegativeSslAuthenticationContextValidator";
-    private final String MockNegativeSaslAuthenticationValidator = "mockNegativeSaslAuthenticationContextValidator";
 
     private AzPubSubPrincipalBuilder azPubSubPrincipalBuilder = new AzPubSubPrincipalBuilder();
 
@@ -51,11 +44,17 @@ public class AzPubSubPrincipalBuilderTest {
 
     @Test
     public void testConfigurePositive() {
-        Map<String, Object> configs = new HashMap<>();
+        Map<String, String> configs = new HashMap<>();
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
+
+        Map<String, String> allConfigs = new HashMap<>(configs);
+        allConfigs.put(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSslAuthenticationContextValidator");
+        allConfigs.put(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSaslAuthenticationContextValidator");
+
+        PowerMock.mockStatic(ConfigUtils.class);
+        EasyMock.expect(ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs)).andReturn(allConfigs);
+        PowerMock.replay(ConfigUtils.class);
 
         azPubSubPrincipalBuilder.configure(configs);
     }
@@ -66,10 +65,15 @@ public class AzPubSubPrincipalBuilderTest {
         expectedEx.expectMessage("ClassNotFound");
         expectedEx.expectMessage("mockNonExistingSslAuthenticationContextValidator");
 
-        Map<String, Object> configs = new HashMap<>();
+        Map<String, String> configs = new HashMap<>();
+        Map<String, String> allConfigs = new HashMap<>(configs);
+        allConfigs.put(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockNonExistingSslAuthenticationContextValidator");
+        allConfigs.put(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSaslAuthenticationContextValidator");
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, "mockNonExistingSslAuthenticationContextValidator");
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
+        PowerMock.mockStatic(ConfigUtils.class);
+        EasyMock.expect(ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs)).andReturn(allConfigs);
+        PowerMock.replay(ConfigUtils.class);
+
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
         azPubSubPrincipalBuilder.configure(configs);
@@ -81,13 +85,17 @@ public class AzPubSubPrincipalBuilderTest {
         expectedEx.expectMessage("ClassNotFound");
         expectedEx.expectMessage("mockNonExistingPositiveSaslAuthenticationContextValidator");
 
-        Map<String, Object> configs = new HashMap<>();
-
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, "mockNonExistingPositiveSaslAuthenticationContextValidator");
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
         SSLSession sslSession = EasyMock.mock(SSLSession.class);
         InetAddress inetAddress =  InetAddress.getLoopbackAddress();
+        Map<String, String> configs = new HashMap<>();
+        Map<String, String> allConfigs = new HashMap<>(configs);
+        allConfigs.put(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSslAuthenticationContextValidator");
+        allConfigs.put(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockNonExistingPositiveSaslAuthenticationContextValidator");
+
+        PowerMock.mockStatic(ConfigUtils.class);
+        EasyMock.expect(ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs)).andReturn(allConfigs);
+        PowerMock.replay(ConfigUtils.class);
 
         azPubSubPrincipalBuilder.configure(configs);
         SslAuthenticationContext sslAuthenticationContext = new SslAuthenticationContext(sslSession, inetAddress, SecurityProtocol.SSL.name);
@@ -96,14 +104,20 @@ public class AzPubSubPrincipalBuilderTest {
 
     @Test
     public void testValidateSslAuthenticationContextPositive() {
-        Map<String, Object> configs = new HashMap<>();
+        Map<String, String> configs = new HashMap<>();
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
         SSLSession sslSession = EasyMock.mock(SSLSession.class);
         InetAddress inetAddress =  InetAddress.getLoopbackAddress();
+
+        Map<String, String> allConfigs = new HashMap<>(configs);
+        allConfigs.put(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSslAuthenticationContextValidator");
+        allConfigs.put(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSaslAuthenticationContextValidator");
+
+        PowerMock.mockStatic(ConfigUtils.class);
+        EasyMock.expect(ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs)).andReturn(allConfigs);
+        PowerMock.replay(ConfigUtils.class);
 
         azPubSubPrincipalBuilder.configure(configs);
 
@@ -116,14 +130,20 @@ public class AzPubSubPrincipalBuilderTest {
 
     @Test
     public void testValidateSaslAuthenticationContextPositive() {
-        Map<String, Object> configs = new HashMap<>();
+        Map<String, String> configs = new HashMap<>();
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
         SaslServer saslServer = EasyMock.mock(SaslServer.class);
         InetAddress inetAddress =  InetAddress.getLoopbackAddress();
+        Map<String, String> allConfigs = new HashMap<>(configs);
+        allConfigs.put(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSslAuthenticationContextValidator");
+        allConfigs.put(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSaslAuthenticationContextValidator");
+
+        PowerMock.mockStatic(ConfigUtils.class);
+        EasyMock.expect(ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs)).andReturn(allConfigs);
+        PowerMock.replay(ConfigUtils.class);
+
         azPubSubPrincipalBuilder.configure(configs);
 
         SaslAuthenticationContext saslAuthenticationContext = new SaslAuthenticationContext(saslServer, SecurityProtocol.SASL_SSL, inetAddress, SecurityProtocol.SASL_SSL.name);
@@ -136,14 +156,20 @@ public class AzPubSubPrincipalBuilderTest {
         expectedEx.expect(IllegalSaslStateException.class);
         expectedEx.expectMessage("failed to authenticate the current context");
 
-        Map<String, Object> configs = new HashMap<>();
+        Map<String, String> configs = new HashMap<>();
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockPositiveSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockNegativeSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
         SaslServer saslServer = EasyMock.mock(SaslServer.class);
         InetAddress inetAddress =  InetAddress.getLoopbackAddress();
+        Map<String, String> allConfigs = new HashMap<>(configs);
+        allConfigs.put(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockPositiveSslAuthenticationContextValidator");
+        allConfigs.put(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockNegativeSaslAuthenticationContextValidator");
+
+        PowerMock.mockStatic(ConfigUtils.class);
+        EasyMock.expect(ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs)).andReturn(allConfigs);
+        PowerMock.replay(ConfigUtils.class);
+
         azPubSubPrincipalBuilder.configure(configs);
 
         SaslAuthenticationContext saslAuthenticationContext = new SaslAuthenticationContext(saslServer, SecurityProtocol.SASL_SSL, inetAddress, SecurityProtocol.SASL_SSL.name);
@@ -155,14 +181,19 @@ public class AzPubSubPrincipalBuilderTest {
         expectedEx.expect(IllegalStateException.class);
         expectedEx.expectMessage("Ssl Authentication Context Validator failed to validate the current SSL session");
 
-        Map<String, Object> configs = new HashMap<>();
+        Map<String, String> configs = new HashMap<>();
 
-        configs.put(AzPubSubSslAuthenticationValidatorClass, MockNegativeSslAuthenticationContextValidator);
-        configs.put(AzPubSubSaslAuthenticationValidatorClass, MockPositiveSaslAuthenticationValidator);
         MemberModifier.suppress(MemberMatcher.methodsDeclaredIn(Logger.class));
 
         SSLSession sslSession = EasyMock.mock(SSLSession.class);
         InetAddress inetAddress =  InetAddress.getLoopbackAddress();
+        Map<String, String> allConfigs = new HashMap<>(configs);
+        allConfigs.put(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockNegativeSslAuthenticationContextValidator");
+        allConfigs.put(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp, "azpubsub.contextvalidator.kafka.security.test.mockNegativeSaslAuthenticationContextValidator");
+
+        PowerMock.mockStatic(ConfigUtils.class);
+        EasyMock.expect(ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs)).andReturn(allConfigs);
+        PowerMock.replay(ConfigUtils.class);
 
         azPubSubPrincipalBuilder.configure(configs);
 

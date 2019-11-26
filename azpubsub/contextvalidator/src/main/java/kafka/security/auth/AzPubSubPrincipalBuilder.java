@@ -3,6 +3,7 @@ package azpubsub.contextvalidator.kafka.security.auth;
 import azpubsub.kafka.security.authenticator.AzPubSubPrincipal;
 import azpubsub.kafka.security.authenticator.SaslAuthenticationContextValidator;
 import azpubsub.kafka.security.authenticator.SslAuthenticationContextValidator;
+import azpubsub.contextvalidator.kafka.security.auth.ConfigUtils;
 import kafka.server.KafkaConfig;
 import org.apache.kafka.common.errors.IllegalSaslStateException;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
@@ -41,51 +42,34 @@ public class AzPubSubPrincipalBuilder implements KafkaPrincipalBuilder, Configur
       * @param configs Global Kafka configuration
      */
     public void configure(Map<String, ?> configs) {
-        String azpubsubPropertiesFilePath = System.getProperty("azpubsub.properties");
-        try (InputStream inputStream = new FileInputStream(new File(azpubsubPropertiesFilePath))) {
-            Properties properties = new Properties();
-
-            properties.load(inputStream);
-            for (Map.Entry<String, ?> e : configs.entrySet()
-            ) {
-                if (null != e && null != e.getKey() && null != e.getValue()) {
-                    properties.putIfAbsent(e.getKey(), e.getValue());
-                }
-            }
-
-            @SuppressWarnings({ "unchecked", "rawtypes" })
-            Map<String, ?> allConfigs = new HashMap(properties);
-        }
-        catch (IOException ex) {
-
-        }
+        Map<String, ?> allConfigs = ConfigUtils.loadAzPubsubConfigAndMergeGlobalConfig(configs);
 
         try{
-            sslAuthenticationContextValidatorClass = Class.forName(configs.get(KafkaConfig.AzpubsubSslAuthenticationValidatorClassProp()).toString());
+            sslAuthenticationContextValidatorClass = Class.forName(allConfigs.get(ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp).toString());
 
             if(null != sslAuthenticationContextValidatorClass) {
 
                 sslAuthenticationContextValidator = (SslAuthenticationContextValidator) Utils.newInstance(sslAuthenticationContextValidatorClass);
 
                 if (null != sslAuthenticationContextValidator) {
-                    sslAuthenticationContextValidator.configure(configs);
+                    sslAuthenticationContextValidator.configure(allConfigs);
                 }
                 else {
-                    throw new IllegalArgumentException("Class " + sslAuthenticationContextValidatorClass + " provided by setting " + KafkaConfig.AzpubsubSslAuthenticationValidatorClassProp()  + " is not found or cannot be initialized. " + KafkaConfig.AzpubsubSslAuthenticationValidatorClassDoc());
+                    throw new IllegalArgumentException("Class " + sslAuthenticationContextValidatorClass + " provided by setting " + ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp  + " is not found or cannot be initialized. ");
                 }
             }
 
-            saslAuthenticationContextValidatorClass = Class.forName(configs.get(KafkaConfig.AzPubSubSaslAuthenticationValidatorClassProp()).toString());
+            saslAuthenticationContextValidatorClass = Class.forName(allConfigs.get(ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp).toString());
 
             if (null != saslAuthenticationContextValidatorClass) {
 
                 saslAuthenticationContextValidator = (SaslAuthenticationContextValidator) Utils.newInstance(saslAuthenticationContextValidatorClass);
 
                 if(null != saslAuthenticationContextValidator) {
-                    saslAuthenticationContextValidator.configure(configs);
+                    saslAuthenticationContextValidator.configure(allConfigs);
                 }
                 else {
-                    throw new IllegalArgumentException("Class " + saslAuthenticationContextValidatorClass + " provided by setting " + KafkaConfig.AzPubSubSaslAuthenticationValidatorClassProp() + " is not found. " + KafkaConfig.AzPubSubSaslAuthenticationValidatorClassDoc());
+                    throw new IllegalArgumentException("Class " + saslAuthenticationContextValidatorClass + " provided by setting " + ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp + " is not found. ");
                 }
             }
         }
@@ -108,10 +92,10 @@ public class AzPubSubPrincipalBuilder implements KafkaPrincipalBuilder, Configur
                 return  new KafkaPrincipal(azPubSubPrincipal.getPrincipalType(), azPubSubPrincipal.getPrincipalName());
             }
             if( null == sslAuthenticationContextValidatorClass) {
-                throw new IllegalArgumentException("No class name is provided by setting " + KafkaConfig.AzpubsubSslAuthenticationValidatorClassProp() + " or class path is invalid. " + KafkaConfig.AzpubsubSslAuthenticationValidatorClassDoc());
+                throw new IllegalArgumentException("No class name is provided by setting " + ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp + " or class path is invalid. ");
             }
             else {
-                throw new IllegalArgumentException("Class " + sslAuthenticationContextValidatorClass + " provided by setting " + KafkaConfig.AzpubsubSslAuthenticationValidatorClassProp() + " is not found or cannot be initialized. " + KafkaConfig.AzpubsubSslAuthenticationValidatorClassDoc());
+                throw new IllegalArgumentException("Class " + sslAuthenticationContextValidatorClass + " provided by setting " + ConfigUtils.AzpubsubSslAuthenticationValidatorClassProp + " is not found or cannot be initialized. ");
             }
         }
         else if ( context instanceof SaslAuthenticationContext ) {
@@ -124,10 +108,10 @@ public class AzPubSubPrincipalBuilder implements KafkaPrincipalBuilder, Configur
                 return new KafkaPrincipal(azPubSubPrincipal.getPrincipalType(), azPubSubPrincipal.getPrincipalName());
             }
             if( null == saslAuthenticationContextValidatorClass) {
-                throw new IllegalArgumentException("No class name is provided by setting " + KafkaConfig.AzPubSubSaslAuthenticationValidatorClassProp() + " or class path is invalid. " + KafkaConfig.AzPubSubSaslAuthenticationValidatorClassDoc());
+                throw new IllegalArgumentException("No class name is provided by setting " + ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp + " or class path is invalid. ");
             }
             else {
-                throw new IllegalArgumentException("Class " + saslAuthenticationContextValidatorClass + " provided by setting " + KafkaConfig.AzPubSubSaslAuthenticationValidatorClassProp() + " is not found. " + KafkaConfig.AzPubSubSaslAuthenticationValidatorClassDoc());
+                throw new IllegalArgumentException("Class " + saslAuthenticationContextValidatorClass + " provided by setting " + ConfigUtils.AzPubSubSaslAuthenticationValidatorClassProp + " is not found. ");
             }
         }
         else {

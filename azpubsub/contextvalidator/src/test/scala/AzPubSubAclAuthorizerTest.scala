@@ -2,10 +2,11 @@ import java.util
 import java.util.Date
 import java.util.concurrent.{ScheduledExecutorService, TimeUnit}
 
+import azpubsub.contextvalidator.kafka.security.auth.{AzPubSubAclAuthorizer, ConfigUtils}
 import com.yammer.metrics.core.Clock
 import kafka.metrics.KafkaMetricsGroup
 import kafka.network.RequestChannel.Session
-import kafka.security.auth.{Acl, All, Allow, AzPubSubAclAuthorizer, Resource, Topic}
+import kafka.security.auth.{Acl, All, Allow, Resource, Topic}
 import kafka.server.KafkaConfig
 import kafka.zk.KafkaZkClient
 import kafka.zookeeper.ZooKeeperClient
@@ -56,13 +57,13 @@ class AzPubSubAclAuthorizerTest {
             EasyMock.replay(authorizer)
 
             val javaConfigs = new util.HashMap[String, String]()
-            javaConfigs.put(KafkaConfig.AzpubsubTokenValidatorClassProp, AzPubSubAclAuthorizerTest.mockPositiveTokenValidator)
-            javaConfigs.put(KafkaConfig.AzpubsubValidateTokenInMinutesProp, "60")
+            javaConfigs.put(ConfigUtils.AzpubsubTokenValidatorClassPathKey, AzPubSubAclAuthorizerTest.mockPositiveTokenValidator)
+            javaConfigs.put(ConfigUtils.AzpubsubValidateTokenInMinutesProp, "60")
             javaConfigs.put(AzPubSubAclAuthorizer.ZkUrlProp, "localhost:2181")
             javaConfigs.put(AzPubSubAclAuthorizer.ZkSessionTimeOutProp, "50")
             javaConfigs.put(AzPubSubAclAuthorizer.ZkMaxInFlightRequests, "40")
             javaConfigs.put(KafkaConfig.ZkConnectProp, "loalhost:2181")
-            javaConfigs.put(KafkaConfig.AzPubSubTopicWhiteListProp, "topic1,topic2")
+            javaConfigs.put(ConfigUtils.AzPubSubTopicWhiteListProp, "topic1,topic2")
 
             authorizer.configure(javaConfigs)
 
@@ -85,8 +86,8 @@ class AzPubSubAclAuthorizerTest {
             EasyMock.replay(authorizer)
 
             val javaConfigs = new util.HashMap[String, String]()
-            javaConfigs.put(KafkaConfig.AzpubsubTokenValidatorClassProp, AzPubSubAclAuthorizerTest.mockNonExistingTokenValidator)
-            javaConfigs.put(KafkaConfig.AzpubsubValidateTokenInMinutesProp, "60")
+            javaConfigs.put(ConfigUtils.AzpubsubTokenValidatorClassPathKey, AzPubSubAclAuthorizerTest.mockNonExistingTokenValidator)
+            javaConfigs.put(ConfigUtils.AzpubsubValidateTokenInMinutesProp, "60")
             javaConfigs.put(AzPubSubAclAuthorizer.ZkUrlProp, "localhost:2181")
             javaConfigs.put(AzPubSubAclAuthorizer.ZkSessionTimeOutProp, "50")
             javaConfigs.put(AzPubSubAclAuthorizer.ZkMaxInFlightRequests, "40")

@@ -17,12 +17,20 @@ public class AzPubSubConfig extends AbstractConfig {
     public static final String TOKEN_VALIDATOR_CLASS_CONFIG = "azpubsub.oauth.validator.class";
     private static final String TOKEN_VALIDATOR_CLASS_DOC = "";
 
+    public static final String DSTS_METADATA_FILE_CONFIG = "azpubsub.dsts.config.file";
+    private static final String DSTS_METADATA_FILE_DOC = "";
+
     static {
         CONFIG = new ConfigDef().define(TOKEN_VALIDATOR_CLASS_CONFIG,
                                         Type.STRING,
                                         "", 
                                         Importance.MEDIUM,
                                         TOKEN_VALIDATOR_CLASS_DOC)
+                                .define(DSTS_METADATA_FILE_CONFIG,
+                                        Type.STRING,
+                                        "", 
+                                        Importance.MEDIUM,
+                                        DSTS_METADATA_FILE_DOC)
                                 ;
     }
 

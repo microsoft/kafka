@@ -34,6 +34,7 @@ public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCa
 
         try {
             this.oAuthAuthenticateValidator = Utils.newInstance(validatorClass, OAuthAuthenticateValidator.class);
+            this.oAuthAuthenticateValidator.configure(config);
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException(String.format("Class %s configured by %s is not found!", validatorClass, AzPubSubConfig.TOKEN_VALIDATOR_CLASS_CONFIG), e);
         }

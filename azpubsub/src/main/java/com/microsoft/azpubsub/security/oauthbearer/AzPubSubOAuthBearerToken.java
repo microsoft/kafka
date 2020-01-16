@@ -23,36 +23,36 @@ public class AzPubSubOAuthBearerToken implements OAuthBearerToken {
         this.claims = new HashSet<Claim>();
     }
 
-	@Override
-	public String value() {
-		return this.value;
-	}
+    @Override
+    public String value() {
+        return this.value;
+    }
 
-	@Override
-	public Set<String> scope() {
-		return null;
-	}
+    @Override
+    public Set<String> scope() {
+        return null;
+    }
 
-	@Override
-	public long lifetimeMs() {
-		return this.lifetimeMs;
-	}
+    @Override
+    public long lifetimeMs() {
+        return this.lifetimeMs;
+    }
 
-	@Override
-	public String principalName() {
-		return this.principalName;
-	}
+    @Override
+    public String principalName() {
+        return this.principalName;
+    }
 
-	@Override
-	public Long startTimeMs() {
-		return this.startTimeMs;
-	}
+    @Override
+    public Long startTimeMs() {
+        return this.startTimeMs;
+    }
 
-	public void addClaim(Claim claim) {
-		claims.add(claim);
-	}
+    public void addClaim(Claim claim) {
+        claims.add(claim);
+    }
 
-	public Set<Claim> claims() {
-		return claims;
-	}
+    public Set<Claim> claims() {
+        return claims;
+    }
 }

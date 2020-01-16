@@ -25,32 +25,32 @@ public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCa
     private OAuthAuthenticateValidator oAuthAuthenticateValidator;
 
     @Override
-	public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
+    public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
         if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
 
         AzPubSubConfig config = AzPubSubConfig.fromProps(configs);
-    	String validatorClass = config.getString(AzPubSubConfig.TOKEN_VALIDATOR_CLASS_CONFIG);
+        String validatorClass = config.getString(AzPubSubConfig.TOKEN_VALIDATOR_CLASS_CONFIG);
 
-    	try {
-			this.oAuthAuthenticateValidator = Utils.newInstance(validatorClass, OAuthAuthenticateValidator.class);
-		} catch (ClassNotFoundException e) {
-			throw new IllegalArgumentException(String.format("Class %s configured by %s is not found!", validatorClass, AzPubSubConfig.TOKEN_VALIDATOR_CLASS_CONFIG), e);
-		}
+        try {
+            this.oAuthAuthenticateValidator = Utils.newInstance(validatorClass, OAuthAuthenticateValidator.class);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(String.format("Class %s configured by %s is not found!", validatorClass, AzPubSubConfig.TOKEN_VALIDATOR_CLASS_CONFIG), e);
+        }
 
         configured = true;
-	}
+    }
 
     public boolean isConfigured(){
         return this.configured;
     }
 
-	@Override
-	public void close() {
-	}
+    @Override
+    public void close() {
+    }
 
-	@Override
-	public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+    @Override
+    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         if (!isConfigured())
             throw new IllegalStateException("Callback handler not configured");
 
@@ -65,7 +65,7 @@ public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCa
             else
                 throw new UnsupportedCallbackException(callback);
         }
-	}
+    }
 
     private void handleCallback(OAuthBearerValidatorCallback callback){
         String accessToken = callback.tokenValue();

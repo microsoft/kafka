@@ -15,27 +15,27 @@ import com.microsoft.azpubsub.security.auth.AzPubSubPrincipal;
 import com.microsoft.azpubsub.security.oauthbearer.AzPubSubOAuthBearerToken;
 
 public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder {
-	public AzPubSubPrincipalBuilder(KerberosShortNamer kerberosShortNamer, SslPrincipalMapper sslPrincipalMapper) {
-		super(kerberosShortNamer, sslPrincipalMapper);
-	}
+    public AzPubSubPrincipalBuilder(KerberosShortNamer kerberosShortNamer, SslPrincipalMapper sslPrincipalMapper) {
+        super(kerberosShortNamer, sslPrincipalMapper);
+    }
 
     @Override
     public KafkaPrincipal build(AuthenticationContext context) {
-    	if (context instanceof SaslAuthenticationContext) {
-    		SaslServer saslServer = ((SaslAuthenticationContext) context).server();
+        if (context instanceof SaslAuthenticationContext) {
+            SaslServer saslServer = ((SaslAuthenticationContext) context).server();
             if (!SaslConfigs.GSSAPI_MECHANISM.equals(saslServer.getMechanismName())) {
-            	AzPubSubOAuthBearerToken token = (AzPubSubOAuthBearerToken)saslServer.getNegotiatedProperty(OAuthBearerLoginModule.OAUTHBEARER_MECHANISM + ".token");
-            	return new AzPubSubPrincipal(
-            				KafkaPrincipal.USER_TYPE,
-            				token.principalName(),
-            				token.value(),
-            				token.lifetimeMs(),
-            				token.startTimeMs(),
-            				token.claims()
-            			);
+                AzPubSubOAuthBearerToken token = (AzPubSubOAuthBearerToken)saslServer.getNegotiatedProperty(OAuthBearerLoginModule.OAUTHBEARER_MECHANISM + ".token");
+                return new AzPubSubPrincipal(
+                            KafkaPrincipal.USER_TYPE,
+                            token.principalName(),
+                            token.value(),
+                            token.lifetimeMs(),
+                            token.startTimeMs(),
+                            token.claims()
+                        );
             }
-    	}
+        }
 
-    	return super.build(context);
+        return super.build(context);
     }
 }

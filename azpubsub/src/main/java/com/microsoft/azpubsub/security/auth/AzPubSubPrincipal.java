@@ -10,27 +10,27 @@ public class AzPubSubPrincipal extends KafkaPrincipal {
     private Long validFromTicks;
     private Set<Claim> claims;
 
-	public AzPubSubPrincipal(String principalType, String name, String base64Token, long validToTicks, Long validFromTicks, Set<Claim> claims) {
-		super(principalType, name);
-		this.base64Token = base64Token;
-		this.validToTicks = validToTicks;
-		this.validFromTicks = validFromTicks;
-		this.claims = claims;
-	}
+    public AzPubSubPrincipal(String principalType, String name, String base64Token, long validToTicks, Long validFromTicks, Set<Claim> claims) {
+        super(principalType, name);
+        this.base64Token = base64Token;
+        this.validToTicks = validToTicks;
+        this.validFromTicks = validFromTicks;
+        this.claims = claims;
+    }
 
     public String getBase64Token() {
-		return base64Token;
-	}
+        return base64Token;
+    }
 
     public Long getValidToTicks() {
-		return validToTicks;
-	}
+        return validToTicks;
+    }
 
     public Long getValidFromTicks() {
-		return validFromTicks;
-	}
+        return validFromTicks;
+    }
 
     public Set<Claim> getClaims() {
-		return claims;
-	}
+        return claims;
+    }
 }

@@ -20,17 +20,17 @@ public class AzPubSubConfig extends AbstractConfig {
     static {
         CONFIG = new ConfigDef().define(TOKEN_VALIDATOR_CLASS_CONFIG,
                                         Type.STRING,
-                                		"", 
+                                        "", 
                                         Importance.MEDIUM,
                                         TOKEN_VALIDATOR_CLASS_DOC)
                                 ;
     }
 
     public static AzPubSubConfig fromProps(Map<String, ?> configProviderProps) {
-    	try {
-    		Properties props = Utils.loadProps(AzPubSubConfig.AZPUBSUB_PROPERTIES_PROP);
-        	return new AzPubSubConfig(props, configProviderProps);
-    	} catch (IOException ex) {
+        try {
+            Properties props = Utils.loadProps(AzPubSubConfig.AZPUBSUB_PROPERTIES_PROP);
+            return new AzPubSubConfig(props, configProviderProps);
+        } catch (IOException ex) {
             throw new IllegalArgumentException("Failed to read azpubusb properties or merge it with Kafka global configs", ex.getCause());
         }
     }

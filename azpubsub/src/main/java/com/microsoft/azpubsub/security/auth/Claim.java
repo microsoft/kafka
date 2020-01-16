@@ -1,4 +1,4 @@
-package com.microsoft.kafka.security.auth;
+package com.microsoft.azpubsub.security.auth;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

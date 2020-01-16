@@ -1,5 +1,6 @@
-package com.microsoft.kafka.security.auth
+package com.microsoft.azpubsub.security.auth
 
+import collection.JavaConverters._
 import java.util
 
 import kafka.network.RequestChannel.Session
@@ -21,8 +22,7 @@ class AzPubSubAclAuthorizer extends SimpleAclAuthorizer with Logging {
       return super.authorize(session, operation, resource)
 
     val principal = sessionPrincipal.asInstanceOf[AzPubSubPrincipal]
-    for (i <- 0 until principal.getClaims.size()) {
-      val claim = principal.getClaims.get(i)
+    for (claim <- principal.getClaims.asScala) {
       val claimPrincipal = new KafkaPrincipal(KafkaPrincipal.USER_TYPE, claim.getValue)
       val claimSession = new Session(claimPrincipal, session.clientAddress)
       if (super.authorize(claimSession, operation, resource))

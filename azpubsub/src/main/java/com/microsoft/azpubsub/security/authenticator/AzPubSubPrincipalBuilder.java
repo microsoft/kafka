@@ -7,16 +7,14 @@ import org.apache.kafka.common.security.auth.AuthenticationContext;
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 import org.apache.kafka.common.security.auth.SaslAuthenticationContext;
 import org.apache.kafka.common.security.authenticator.DefaultKafkaPrincipalBuilder;
-import org.apache.kafka.common.security.kerberos.KerberosShortNamer;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
-import org.apache.kafka.common.security.ssl.SslPrincipalMapper;
 
 import com.microsoft.azpubsub.security.auth.AzPubSubPrincipal;
 import com.microsoft.azpubsub.security.oauthbearer.AzPubSubOAuthBearerToken;
 
 public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder {
-    public AzPubSubPrincipalBuilder(KerberosShortNamer kerberosShortNamer, SslPrincipalMapper sslPrincipalMapper) {
-        super(kerberosShortNamer, sslPrincipalMapper);
+    public AzPubSubPrincipalBuilder() {
+        super(null, null);
     }
 
     @Override

@@ -35,11 +35,12 @@ public class AzPubSubConfig extends AbstractConfig {
     }
 
     public static AzPubSubConfig fromProps(Map<String, ?> configProviderProps) {
+        String azpubsubPropertiesFile = System.getProperty(AZPUBSUB_PROPERTIES_PROP);
         try {
-            Properties props = Utils.loadProps(AzPubSubConfig.AZPUBSUB_PROPERTIES_PROP);
+            Properties props = Utils.loadProps(azpubsubPropertiesFile);
             return new AzPubSubConfig(props, configProviderProps);
         } catch (IOException ex) {
-            throw new IllegalArgumentException("Failed to read azpubusb properties or merge it with Kafka global configs", ex.getCause());
+            throw new IllegalArgumentException(String.format("Failed to read azpubusb properties (%s) or merge it with Kafka global configs", azpubsubPropertiesFile), ex.getCause());
         }
     }
 

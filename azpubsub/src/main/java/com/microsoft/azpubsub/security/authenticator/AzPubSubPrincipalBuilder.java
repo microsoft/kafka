@@ -26,10 +26,7 @@ public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder {
                 return new AzPubSubPrincipal(
                             KafkaPrincipal.USER_TYPE,
                             token.principalName(),
-                            token.value(),
-                            token.lifetimeMs(),
-                            token.startTimeMs(),
-                            token.claims()
+                            token.scope()
                         );
             }
         }

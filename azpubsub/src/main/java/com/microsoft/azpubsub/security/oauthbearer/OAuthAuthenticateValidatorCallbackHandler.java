@@ -13,6 +13,7 @@ import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerValidatorCallback;
+import org.apache.kafka.common.security.oauthbearer.internals.unsecured.OAuthBearerIllegalTokenException;
 import org.apache.kafka.common.security.oauthbearer.internals.unsecured.OAuthBearerValidationResult;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.common.utils.Utils;
@@ -26,8 +27,9 @@ public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCa
 
     @Override
     public void configure(Map<String, ?> configs, String saslMechanism, List<AppConfigurationEntry> jaasConfigEntries) {
-        if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism))
+        if (!OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslMechanism)) {
             throw new IllegalArgumentException(String.format("Unexpected SASL mechanism: %s", saslMechanism));
+        }
 
         AzPubSubConfig config = AzPubSubConfig.fromProps(configs);
         String validatorClass = config.getString(AzPubSubConfig.TOKEN_VALIDATOR_CLASS_CONFIG);
@@ -52,33 +54,37 @@ public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCa
 
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-        if (!isConfigured())
+        if (!isConfigured()) {
             throw new IllegalStateException("Callback handler not configured");
+        }
 
         for (Callback callback : callbacks) {
-            if (callback instanceof OAuthBearerValidatorCallback)
+            if (callback instanceof OAuthBearerValidatorCallback) {
                 try {
                     OAuthBearerValidatorCallback validationCallback = (OAuthBearerValidatorCallback) callback;
                     handleCallback(validationCallback);
                 } catch (KafkaException e) {
                     throw new IOException(e.getMessage(), e);
                 }
-            else
+            }
+            else {
                 throw new UnsupportedCallbackException(callback);
+            }
         }
     }
 
     private void handleCallback(OAuthBearerValidatorCallback callback){
         String accessToken = callback.tokenValue();
-        if (accessToken == null)
+        if (accessToken == null) {
             throw new IllegalArgumentException("Callback missing required token value");
+        }
 
         OAuthBearerToken token = oAuthAuthenticateValidator.introspectBearer(accessToken);
 
         // Implement Check Expire Token..
         long now = time.milliseconds();
         if (now > token.lifetimeMs()){
-            OAuthBearerValidationResult.newFailure("Expired Token, needs refresh!");
+            throw new OAuthBearerIllegalTokenException(OAuthBearerValidationResult.newFailure("Token Expired - need re-authentication!"));
         }
 
         callback.token(token);

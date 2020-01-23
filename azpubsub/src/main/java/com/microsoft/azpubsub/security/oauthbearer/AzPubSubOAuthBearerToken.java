@@ -5,22 +5,20 @@ import java.util.Set;
 
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
 
-import com.microsoft.azpubsub.security.auth.Claim;
-
 public class AzPubSubOAuthBearerToken implements OAuthBearerToken {
     private String value;
+    private Set<String> scopes;
     private long lifetimeMs;
     private String principalName;
     private Long startTimeMs;
-    private Set<Claim> claims;
 
     public AzPubSubOAuthBearerToken(String accessToken, long lifeTimeS, String principalName, Long startTimeMs) {
         super();
         this.value = accessToken;
+        this.scopes = new HashSet<String>();
         this.lifetimeMs = lifeTimeS;
         this.principalName= principalName;
         this.startTimeMs = startTimeMs;
-        this.claims = new HashSet<Claim>();
     }
 
     @Override
@@ -30,7 +28,7 @@ public class AzPubSubOAuthBearerToken implements OAuthBearerToken {
 
     @Override
     public Set<String> scope() {
-        return null;
+        return this.scopes;
     }
 
     @Override
@@ -48,11 +46,7 @@ public class AzPubSubOAuthBearerToken implements OAuthBearerToken {
         return this.startTimeMs;
     }
 
-    public void addClaim(Claim claim) {
-        claims.add(claim);
-    }
-
-    public Set<Claim> claims() {
-        return claims;
+    public void addScope(String scope) {
+        this.scopes.add(scope);
     }
 }

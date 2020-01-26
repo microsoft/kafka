@@ -4,6 +4,9 @@ import java.util.Set;
 
 import org.apache.kafka.common.security.auth.KafkaPrincipal;
 
+/*
+ * AzPubSub Principal holding role
+ */
 public class AzPubSubPrincipal extends KafkaPrincipal {
     private Set<String> roles;
 

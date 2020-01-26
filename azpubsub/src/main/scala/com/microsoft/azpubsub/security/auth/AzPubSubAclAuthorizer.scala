@@ -10,6 +10,9 @@ import kafka.security.auth.Resource
 import kafka.security.auth.SimpleAclAuthorizer
 import kafka.utils.Logging
 
+/*
+ * AzPubSub ACL Authorizer to handle the role
+ */
 class AzPubSubAclAuthorizer extends SimpleAclAuthorizer with Logging {
   override def authorize(session: Session, operation: Operation, resource: Resource): Boolean = {
     val sessionPrincipal = session.principal

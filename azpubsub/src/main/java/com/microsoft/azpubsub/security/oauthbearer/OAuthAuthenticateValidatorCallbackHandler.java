@@ -20,6 +20,9 @@ import org.apache.kafka.common.utils.Utils;
 
 import com.microsoft.azpubsub.security.auth.AzPubSubConfig;
 
+/*
+ * Callback handler for SASL-based authentication
+ */
 public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCallbackHandler {
     private boolean configured = false;
     private Time time = Time.SYSTEM;

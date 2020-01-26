@@ -12,6 +12,9 @@ import org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule;
 import com.microsoft.azpubsub.security.auth.AzPubSubPrincipal;
 import com.microsoft.azpubsub.security.oauthbearer.AzPubSubOAuthBearerToken;
 
+/*
+ * AzPubSub Principal builder for the Kafka Authorizer
+ */
 public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder {
     public AzPubSubPrincipalBuilder() {
         super(null, null);

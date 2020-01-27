@@ -44,11 +44,7 @@ public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCa
             throw new IllegalArgumentException(String.format("Class %s configured by %s is not found!", validatorClass, AzPubSubConfig.TOKEN_VALIDATOR_CLASS_CONFIG), e);
         }
 
-        configured = true;
-    }
-
-    public boolean isConfigured(){
-        return this.configured;
+        this.configured = true;
     }
 
     @Override
@@ -57,7 +53,7 @@ public class OAuthAuthenticateValidatorCallbackHandler implements AuthenticateCa
 
     @Override
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-        if (!isConfigured()) {
+        if (!this.configured) {
             throw new IllegalStateException("Callback handler not configured");
         }
 

@@ -42,7 +42,27 @@ public class AzPubSubConfig extends AbstractConfig {
                                         "", 
                                         Importance.MEDIUM,
                                         DSTS_METADATA_FILE_DOC)
-                                ;
+                                .define("azpubsub.topic.max.qps",
+                                        Type.INT,
+                                        1000,
+                                        Importance.MEDIUM,
+                                        "Topic Qps")
+                                .define("azpubsub.qps.throttling.level",
+                                        Type.INT,
+                                        0,
+                                        Importance.MEDIUM,
+                                       "Topic Qps throttling level. 0: throttling is disabled; 1: throttling at topic level; 2: throttling at clientId + topic level.")
+                                .define("azpubsub.clientid.topic.max.qps",
+                                        Type.INT,
+                                        1000,
+                                        Importance.MEDIUM,
+                                        "Topic Qps")
+                                .define("azpubsub.timer.task.execution.interval.in.ms",
+                                        Type.LONG,
+                                        300000,
+                                        Importance.MEDIUM,
+                                        "The interval of timer background task executions, in milliseconds")
+                                        ;
     }
 
     public static AzPubSubConfig fromProps(Map<String, ?> configProviderProps) {

@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.microsoft.azpubsub.security.authenticator;
 
 import java.util.Map;
@@ -29,8 +45,8 @@ public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder imple
         super(null, null);
     }
 
-	@Override
-	public void configure(Map<String, ?> configs) {
+    @Override
+    public void configure(Map<String, ?> configs) {
         AzPubSubConfig config = AzPubSubConfig.fromProps(configs);
         String certificateIdentifierClass = config.getString(AzPubSubConfig.CERT_IDENTIFIER_CLASS_CONFIG);
 
@@ -42,7 +58,7 @@ public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder imple
         }
 
         this.configured = true;
-	}
+    }
 
     @Override
     public KafkaPrincipal build(AuthenticationContext context) {
@@ -50,7 +66,7 @@ public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder imple
             throw new IllegalStateException("AzPubSub Principal Builder not configured");
         }
 
-    	if (context instanceof SslAuthenticationContext) {
+        if (context instanceof SslAuthenticationContext) {
             SSLSession sslSession = ((SslAuthenticationContext) context).session();
             CertificateIdentity identity = this.certificateIdentifier.getIdentity(sslSession);
             return new AzPubSubPrincipal(
@@ -58,10 +74,10 @@ public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder imple
                     identity.principalName(),
                     identity.scope()
                 );
-    	} else if (context instanceof SaslAuthenticationContext) {
+        } else if (context instanceof SaslAuthenticationContext) {
             SaslServer saslServer = ((SaslAuthenticationContext) context).server();
             if (OAuthBearerLoginModule.OAUTHBEARER_MECHANISM.equals(saslServer.getMechanismName())) {
-                AzPubSubOAuthBearerToken token = (AzPubSubOAuthBearerToken)saslServer.getNegotiatedProperty(OAuthBearerLoginModule.OAUTHBEARER_MECHANISM + ".token");
+                AzPubSubOAuthBearerToken token = (AzPubSubOAuthBearerToken) saslServer.getNegotiatedProperty(OAuthBearerLoginModule.OAUTHBEARER_MECHANISM + ".token");
                 return new AzPubSubPrincipal(
                         AzPubSubPrincipal.USER_TYPE,
                         token.principalName(),

@@ -980,6 +980,10 @@ project(':azpubsub') {
     
     testCompile libs.junit
   }
+
+  checkstyle {
+    configProperties = checkstyleConfigProperties("import-control-azpubsub.xml")
+  }
 }
 
 project(':examples') {

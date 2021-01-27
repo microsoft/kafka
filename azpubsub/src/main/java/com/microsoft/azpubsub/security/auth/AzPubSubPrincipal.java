@@ -34,4 +34,16 @@ public class AzPubSubPrincipal extends KafkaPrincipal {
     public Set<String> getRoles() {
         return this.roles;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof AzPubSubPrincipal)) return false;
+        if (!super.equals(o)) return false;
+        return roles.equals(((AzPubSubPrincipal) o).roles);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

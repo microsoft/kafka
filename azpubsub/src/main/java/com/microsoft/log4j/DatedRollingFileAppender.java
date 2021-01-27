@@ -45,7 +45,7 @@ public class DatedRollingFileAppender extends FileAppender {
      * The date pattern. By default, the pattern is set to
      * "'.'yyyy-MM-dd" meaning daily roll over.
      */
-    private final String datePattern = "'.'yyyy-MM-dd";
+    private final static String DATE_PATTERN = "'.'yyyy-MM-dd";
 
     /**
      * The next time we estimate a roll over should occur.
@@ -62,7 +62,7 @@ public class DatedRollingFileAppender extends FileAppender {
      */
     private String originalFileName = null;
 
-    private SimpleDateFormat sdf = new SimpleDateFormat(datePattern);
+    private SimpleDateFormat sdf = new SimpleDateFormat(DATE_PATTERN);
 
     /**
      * The default constructor simply calls its {@link
@@ -125,7 +125,7 @@ public class DatedRollingFileAppender extends FileAppender {
      *
      * @since 0.9.0
      */
-    protected void subAppend(LoggingEvent event) {
+    protected synchronized void subAppend(LoggingEvent event) {
         if (System.currentTimeMillis() >= this.nextRolloverCheck) {
             LogLog.debug("Roll over the log to next day. Current Log File name: " + this.fileName);
 
@@ -166,7 +166,10 @@ public class DatedRollingFileAppender extends FileAppender {
                         })
                         .forEach(path -> {
                             // delete the log file
-                            path.toFile().delete();
+                            boolean deleted = path.toFile().delete();
+                            if (!deleted) {
+                                LogLog.error("log file deletion failed.");
+                            }
                         });
                 }
 

@@ -40,10 +40,6 @@ public class BurstFilter extends Filter {
     private final DelayQueue<LogDelay> history = new DelayQueue<>();
     private final Queue<LogDelay> available = new ConcurrentLinkedQueue<>();
 
-    static LogDelay createLogDelay(final long expireTime) {
-        return new LogDelay(expireTime);
-    }
-
     /**
      * Sets the logging level to use.
      * @param level the logging level to use. 
@@ -89,7 +85,7 @@ public class BurstFilter extends Filter {
             return Filter.NEUTRAL;
         }
 
-        if (event.getLevel().toInt() >= this.level.toInt()) {
+        if (event.getLevel().toInt() <= this.level.toInt()) {
             LogDelay delay = history.poll();
             while (delay != null) {
                 available.add(delay);
@@ -107,6 +103,15 @@ public class BurstFilter extends Filter {
         }
 
         return Filter.ACCEPT;
+    }
+
+    @Override
+    public String toString() {
+        return "level=" + level.toString() + ", interval=" + burstInterval + ", max=" + history.size();
+    }
+
+    static LogDelay createLogDelay(final long expireTime) {
+        return new LogDelay(expireTime);
     }
 
     /**

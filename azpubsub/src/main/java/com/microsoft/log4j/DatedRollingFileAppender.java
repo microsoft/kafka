@@ -60,6 +60,8 @@ public class DatedRollingFileAppender extends FileAppender {
      */
     private final static long DEFAULT_MAX_FILE_SIZE = 100 * 1024 * 1024;
 
+    private final static SimpleDateFormat SDF_PATTERN = new SimpleDateFormat(DATE_PATTERN);
+
     /**
      * The next time we estimate a roll over should occur.
      */
@@ -79,8 +81,6 @@ public class DatedRollingFileAppender extends FileAppender {
      * The original name of the log file.
      */
     private String originalFileName = null;
-
-    private SimpleDateFormat sdf = new SimpleDateFormat(DATE_PATTERN);
 
     /**
      * The default constructor simply calls its {@link
@@ -129,12 +129,13 @@ public class DatedRollingFileAppender extends FileAppender {
         this.originalFileName = fileName;
         if (this.maxFileSize > 0) {
             Pair<String, Long> res = getSerialNumber();
-            super.setFile(this.originalFileName + sdf.format(new Date()) + "." + res.getLeft(), append, bufferedIO, bufferSize);
+            super.setFile(this.originalFileName + SDF_PATTERN.format(new Date()) + "." + res.getLeft(), append, bufferedIO, bufferSize);
             // set the qw counter to current/latest file length
             ((CountingQuietWriter) qw).setCount(res.getRight());
         } else {
-            super.setFile(this.originalFileName + sdf.format(new Date()), append, bufferedIO, bufferSize);
+            super.setFile(this.originalFileName + SDF_PATTERN.format(new Date()), append, bufferedIO, bufferSize);
         }
+
         this.nextRolloverCheck = getNextCheckForTomorrow();
     }
 
@@ -161,8 +162,8 @@ public class DatedRollingFileAppender extends FileAppender {
      * expressed respectively in kilobytes, megabytes or gigabytes. For example,
      * the value "10KB" will be interpreted as 10240.
      */
-    public void setMaxFileSize(String value) {
-        maxFileSize = OptionConverter.toFileSize(value, DEFAULT_MAX_FILE_SIZE);
+    public synchronized void setMaxFileSize(String value) {
+        this.maxFileSize = OptionConverter.toFileSize(value, DEFAULT_MAX_FILE_SIZE);
     }
 
     /**
@@ -278,7 +279,7 @@ public class DatedRollingFileAppender extends FileAppender {
     private Pair<String, Long> getSerialNumber() throws IOException {
         // find the current/latest log file for the current date
         Path logFile = Paths.get(originalFileName);
-        Pattern pattern = Pattern.compile("^" + logFile.getFileName() + sdf.format(new Date()) + "(.(?<sno>\\d+))?$");
+        Pattern pattern = Pattern.compile("^" + logFile.getFileName() + new SimpleDateFormat(DATE_PATTERN).format(new Date()) + "(.(?<sno>\\d+))?$");
         Optional<String> file =
             Files.find(
                 logFile.getParent(), 1,
@@ -304,7 +305,7 @@ public class DatedRollingFileAppender extends FileAppender {
                     if (logFile.getParent() != null && filename != null) {
                         File f = Paths.get(logFile.getParent().toString(), filename).toFile();
                         // if the current/latest file reached the max file size, move it to next
-                        if (f.length() >= maxFileSize) {
+                        if (f.length() >= this.maxFileSize) {
                             sno++;
                         } else {
                             size = f.length();

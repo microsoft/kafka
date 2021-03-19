@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import com.yammer.metrics.core.{Meter, MetricName}
 import kafka.metrics.KafkaMetricsGroup
 import kafka.security.auth._
-import kafka.security.authorizer.{AclAuthorizer, AuthorizerUtils}
+import kafka.security.authorizer.AclAuthorizer
 import kafka.utils.Logging
 import org.apache.kafka.common.security.auth.{KafkaPrincipal, SecurityProtocol}
 import org.apache.kafka.common.utils.Utils

@@ -1,27 +1,25 @@
 package com.microsoft.azpubsub.security.auth
 
-import java.util
-import java.util.concurrent._
-import scala.jdk.CollectionConverters._
 import com.typesafe.scalalogging.Logger
 import com.yammer.metrics.core.{Meter, MetricName}
-import org.apache.kafka.common.security.auth.KafkaPrincipal
-import org.apache.kafka.common.utils.Utils
 import kafka.metrics.KafkaMetricsGroup
-import kafka.network.RequestChannel.Session
-import kafka.security.auth.Operation
-import kafka.security.auth.{Resource, Topic}
-import kafka.security.auth.SimpleAclAuthorizer
+import kafka.security.auth._
+import kafka.security.authorizer.{AclAuthorizer, AuthorizerUtils}
 import kafka.utils.Logging
+import org.apache.kafka.common.security.auth.{KafkaPrincipal, SecurityProtocol}
+import org.apache.kafka.common.utils.Utils
+import org.apache.kafka.server.authorizer.{Action, AuthorizableRequestContext, AuthorizationResult}
 
-import scala.annotation.nowarn
+import java.net.InetAddress
+import java.util
+import java.util.concurrent._
+import scala.collection.JavaConverters._
 
 /*
  * AzPubSub ACL Authorizer to handle the certificate & role based principal type
  */
-@nowarn("cat=deprecation")
-class AzPubSubAclAuthorizer extends SimpleAclAuthorizer with Logging with KafkaMetricsGroup {
-  private[security] val authorizerLogger = Logger("kafka.authorizer.logger")
+class AzPubSubAclAuthorizer extends AclAuthorizer with Logging with KafkaMetricsGroup {
+  private[security] val aclAuthorizerLogger = Logger("kafka.authorizer.logger")
 
   private val successRate: Meter = newMeter("AuthorizerSuccessPerSec", "success", TimeUnit.SECONDS)
   private val failureRate: Meter = newMeter("AuthorizerFailurePerSec", "failure", TimeUnit.SECONDS)
@@ -40,31 +38,49 @@ class AzPubSubAclAuthorizer extends SimpleAclAuthorizer with Logging with KafkaM
     explicitMetricName("azpubsub.security", "AuthorizerMetrics", name, metricTags)
   }
 
-  override def authorize(session: Session, operation: Operation, resource: Resource): Boolean = {
+  override def authorize(requestContext: AuthorizableRequestContext, actions: util.List[Action]): util.List[AuthorizationResult] = {
+    actions.asScala.map { action => this.authorizeAction(requestContext, action) }.asJava
+  }
+
+  private def authorizeAction(requestContext: AuthorizableRequestContext, action: Action): AuthorizationResult = {
+    val resource = action.resourcePattern
     if (resource.resourceType == Topic && authZConfig.isDisabled(resource.name)) {
-      authorizerLogger.debug(s"AuthZ is disabled for resource: $resource")
+      aclAuthorizerLogger.debug(s"AuthZ is disabled for resource: $resource")
       successRate.mark()
       disabledRate.mark()
-      return true
+      return AuthorizationResult.ALLOWED
     }
 
-    val sessionPrincipal = session.principal
+    def getClaimRequestContext(requestContext: AuthorizableRequestContext, claimPrincipal: KafkaPrincipal): AuthorizableRequestContext = {
+      new AuthorizableRequestContext {
+        override def clientId(): String = requestContext.clientId
+        override def requestType(): Int = requestContext.requestType
+        override def listenerName(): String = requestContext.listenerName
+        override def clientAddress(): InetAddress = requestContext.clientAddress
+        override def principal(): KafkaPrincipal = claimPrincipal
+        override def securityProtocol(): SecurityProtocol = requestContext.securityProtocol
+        override def correlationId(): Int = requestContext.correlationId
+        override def requestVersion(): Int = requestContext.requestVersion
+      }
+    }
+
+    val sessionPrincipal = requestContext.principal
     if (classOf[AzPubSubPrincipal] == sessionPrincipal.getClass) {
       val principal = sessionPrincipal.asInstanceOf[AzPubSubPrincipal]
       for (role <- principal.getRoles.asScala) {
         val claimPrincipal = new KafkaPrincipal(principal.getPrincipalType(), role)
-        val claimSession = new Session(claimPrincipal, session.clientAddress)
-        if (super.authorize(claimSession, operation, resource)) {
+        val claimRequestContext = getClaimRequestContext(requestContext, claimPrincipal)
+        if (super.authorize(claimRequestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
           successRate.mark()
-          return true
+          return AuthorizationResult.ALLOWED
         }
       }
-    } else if (super.authorize(session, operation, resource)) {
+    } else if (super.authorize(requestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
       successRate.mark()
-      return true
+      return AuthorizationResult.ALLOWED
     }
 
     failureRate.mark()
-    return false
+    return AuthorizationResult.DENIED
   }
 }

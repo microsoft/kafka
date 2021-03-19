@@ -3,17 +3,17 @@ package com.microsoft.azpubsub.security.auth
 import com.typesafe.scalalogging.Logger
 import com.yammer.metrics.core.{Meter, MetricName}
 import kafka.metrics.KafkaMetricsGroup
-import kafka.security.auth._
 import kafka.security.authorizer.AclAuthorizer
 import kafka.utils.Logging
 import org.apache.kafka.common.security.auth.{KafkaPrincipal, SecurityProtocol}
 import org.apache.kafka.common.utils.Utils
 import org.apache.kafka.server.authorizer.{Action, AuthorizableRequestContext, AuthorizationResult}
+import org.apache.kafka.common.resource.ResourceType.TOPIC
 
 import java.net.InetAddress
 import java.util
 import java.util.concurrent._
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /*
  * AzPubSub ACL Authorizer to handle the certificate & role based principal type
@@ -44,7 +44,7 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging with KafkaMetrics
 
   private def authorizeAction(requestContext: AuthorizableRequestContext, action: Action): AuthorizationResult = {
     val resource = action.resourcePattern
-    if (resource.resourceType == Topic && authZConfig.isDisabled(resource.name)) {
+    if (resource.resourceType == TOPIC && authZConfig.isDisabled(resource.name)) {
       aclAuthorizerLogger.debug(s"AuthZ is disabled for resource: $resource")
       successRate.mark()
       disabledRate.mark()

@@ -79,6 +79,9 @@ object ConfigCommand extends Config {
     DynamicConfig.Broker.ReplicaAlterLogDirsIoMaxBytesPerSecondProp)
 
   def main(args: Array[String]): Unit = {
+
+    var exitCode = 0
+
     try {
       val opts = new ConfigCommandOptions(args)
 
@@ -97,13 +100,15 @@ object ConfigCommand extends Config {
       case e @ (_: IllegalArgumentException | _: InvalidConfigurationException | _: OptionException) =>
         logger.debug(s"Failed config command with args '${args.mkString(" ")}'", e)
         System.err.println(e.getMessage)
-        Exit.exit(1)
+        exitCode = 1
 
       case t: Throwable =>
         logger.debug(s"Error while executing config command with args '${args.mkString(" ")}'", t)
         System.err.println(s"Error while executing config command with args '${args.mkString(" ")}'")
         t.printStackTrace(System.err)
-        Exit.exit(1)
+        exitCode = 1
+    } finally {
+      Exit.exit(exitCode)
     }
   }
 

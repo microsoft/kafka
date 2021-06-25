@@ -48,6 +48,8 @@ object ConsumerGroupCommand extends Logging {
 
   def main(args: Array[String]): Unit = {
 
+    var exitCode = 0
+
     val opts = new ConsumerGroupCommandOptions(args)
     try {
       opts.checkArgs()
@@ -62,6 +64,9 @@ object ConsumerGroupCommand extends Logging {
     } catch {
       case e: OptionException =>
         CommandLineUtils.printUsageAndDie(opts.parser, e.getMessage)
+        exitCode = 1
+    } finally {
+      Exit.exit(exitCode)
     }
   }
 

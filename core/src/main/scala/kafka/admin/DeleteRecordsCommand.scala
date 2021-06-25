@@ -19,10 +19,9 @@ package kafka.admin
 
 import java.io.PrintStream
 import java.util.Properties
-
 import kafka.common.AdminCommandFailedException
 import kafka.utils.json.JsonValue
-import kafka.utils.{CommandDefaultOptions, CommandLineUtils, CoreUtils, Json}
+import kafka.utils.{CommandDefaultOptions, CommandLineUtils, CoreUtils, Exit, Json}
 import org.apache.kafka.clients.admin.{Admin, RecordsToDelete}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.common.TopicPartition
@@ -90,14 +89,19 @@ object DeleteRecordsCommand {
     val deleteRecordsResult = adminClient.deleteRecords(recordsToDelete)
     out.println("Records delete operation completed:")
 
+    var exitCode = 0
+
     deleteRecordsResult.lowWatermarks.forEach { (tp, partitionResult) =>
       try out.println(s"partition: $tp\tlow_watermark: ${partitionResult.get.lowWatermark}")
       catch {
-        case e: Exception => out.println(s"partition: $tp\terror: ${e.getMessage}")
+        case e: Exception =>
+          out.println(s"partition: $tp\terror: ${e.getMessage}")
+          exitCode = 1
       }
     }
 
     adminClient.close()
+    Exit.exit(exitCode)
   }
 
   private def createAdminClient(opts: DeleteRecordsCommandOptions): Admin = {

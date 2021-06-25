@@ -19,8 +19,7 @@ package kafka.admin
 
 import java.io.PrintStream
 import java.util.Properties
-
-import kafka.utils.{CommandDefaultOptions, CommandLineUtils, Json}
+import kafka.utils.{CommandDefaultOptions, CommandLineUtils, Exit, Json}
 import org.apache.kafka.clients.admin.{Admin, AdminClientConfig, DescribeLogDirsResult}
 import org.apache.kafka.common.requests.DescribeLogDirsResponse.LogDirInfo
 import org.apache.kafka.common.utils.Utils
@@ -53,6 +52,7 @@ object LogDirsCommand {
         out.println(s"Received log directory information from brokers ${brokerList.mkString(",")}")
         out.println(formatAsJson(logDirInfosByBroker, topicList.toSet))
         adminClient.close()
+        Exit.exit(0)
     }
 
     private def formatAsJson(logDirInfosByBroker: Map[Integer, Map[String, LogDirInfo]], topicSet: Set[String]): String = {

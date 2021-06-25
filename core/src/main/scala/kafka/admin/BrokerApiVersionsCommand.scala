@@ -22,9 +22,7 @@ import java.io.IOException
 import java.util.Properties
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit}
-
-import kafka.utils.{CommandDefaultOptions, CommandLineUtils}
-import kafka.utils.Logging
+import kafka.utils.{CommandDefaultOptions, CommandLineUtils, Exit, Logging}
 import org.apache.kafka.common.utils.Utils
 import org.apache.kafka.clients.{ApiVersions, ClientDnsLookup, ClientResponse, ClientUtils, CommonClientConfigs, Metadata, NetworkClient, NodeApiVersions}
 import org.apache.kafka.clients.consumer.internals.{ConsumerNetworkClient, RequestFuture}
@@ -55,6 +53,7 @@ object BrokerApiVersionsCommand {
   }
 
   def execute(args: Array[String], out: PrintStream): Unit = {
+    var exitCode = 0
     val opts = new BrokerVersionCommandOptions(args)
     val adminClient = createAdminClient(opts)
     adminClient.awaitBrokers()
@@ -62,10 +61,13 @@ object BrokerApiVersionsCommand {
     brokerMap.foreach { case (broker, versionInfoOrError) =>
       versionInfoOrError match {
         case Success(v) => out.print(s"${broker} -> ${v.toString(true)}\n")
-        case Failure(v) => out.print(s"${broker} -> ERROR: ${v}\n")
+        case Failure(v) =>
+          out.print(s"${broker} -> ERROR: ${v}\n")
+          exitCode = 1
       }
     }
     adminClient.close()
+    Exit.exit(exitCode)
   }
 
   private def createAdminClient(opts: BrokerVersionCommandOptions): AdminClient = {

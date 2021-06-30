@@ -100,7 +100,7 @@ object AclCommand extends Logging {
 
   class AdminClientService(val opts: AclCommandOptions) extends AclCommandService with Logging {
 
-    private def withAdminClient(opts: AclCommandOptions)(f: Admin => Unit): Unit = {
+    protected def withAdminClient(opts: AclCommandOptions)(f: Admin => Unit): Unit = {
       val props = if (opts.options.has(opts.commandConfigOpt))
         Utils.loadProps(opts.options.valueOf(opts.commandConfigOpt))
       else
@@ -171,7 +171,7 @@ object AclCommand extends Logging {
       }
     }
 
-    private def removeAcls(adminClient: Admin, acls: Set[AccessControlEntry], filter: ResourcePatternFilter): Unit = {
+    protected def removeAcls(adminClient: Admin, acls: Set[AccessControlEntry], filter: ResourcePatternFilter): Unit = {
       if (acls.isEmpty)
         adminClient.deleteAcls(List(new AclBindingFilter(filter, AccessControlEntryFilter.ANY)).asJava).all().get()
       else {
@@ -180,7 +180,7 @@ object AclCommand extends Logging {
       }
     }
 
-    private def getAcls(adminClient: Admin, filters: Set[ResourcePatternFilter]): Map[ResourcePattern, Set[AccessControlEntry]] = {
+    protected def getAcls(adminClient: Admin, filters: Set[ResourcePatternFilter]): Map[ResourcePattern, Set[AccessControlEntry]] = {
       val aclBindings =
         if (filters.isEmpty) adminClient.describeAcls(AclBindingFilter.ANY).values().get().asScala.toList
         else {
@@ -428,7 +428,7 @@ object AclCommand extends Logging {
     resourceToAcl
   }
 
-  private def getResourceFilterToAcls(opts: AclCommandOptions): Map[ResourcePatternFilter, Set[AccessControlEntry]] = {
+  def getResourceFilterToAcls(opts: AclCommandOptions): Map[ResourcePatternFilter, Set[AccessControlEntry]] = {
     var resourceToAcls = Map.empty[ResourcePatternFilter, Set[AccessControlEntry]]
 
     //if none of the --producer or --consumer options are specified , just construct ACLs from CLI options.
@@ -530,14 +530,14 @@ object AclCommand extends Logging {
       Set.empty[String]
   }
 
-  private def getPrincipals(opts: AclCommandOptions, principalOptionSpec: ArgumentAcceptingOptionSpec[String]): Set[KafkaPrincipal] = {
+  def getPrincipals(opts: AclCommandOptions, principalOptionSpec: ArgumentAcceptingOptionSpec[String]): Set[KafkaPrincipal] = {
     if (opts.options.has(principalOptionSpec))
       opts.options.valuesOf(principalOptionSpec).asScala.map(s => JSecurityUtils.parseKafkaPrincipal(s.trim)).toSet
     else
       Set.empty[KafkaPrincipal]
   }
 
-  private def getResourceFilter(opts: AclCommandOptions, dieIfNoResourceFound: Boolean = true): Set[ResourcePatternFilter] = {
+  def getResourceFilter(opts: AclCommandOptions, dieIfNoResourceFound: Boolean = true): Set[ResourcePatternFilter] = {
     val patternType: PatternType = opts.options.valueOf(opts.resourcePatternType)
 
     var resourceFilters = Set.empty[ResourcePatternFilter]
@@ -563,7 +563,7 @@ object AclCommand extends Logging {
     resourceFilters
   }
 
-  private def confirmAction(opts: AclCommandOptions, msg: String): Boolean = {
+  def confirmAction(opts: AclCommandOptions, msg: String): Boolean = {
     if (opts.options.has(opts.forceOpt))
         return true
     println(msg)

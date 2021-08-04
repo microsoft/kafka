@@ -68,7 +68,13 @@ public class AzPubSubPrincipalBuilder extends DefaultKafkaPrincipalBuilder imple
 
         if (context instanceof SslAuthenticationContext) {
             SSLSession sslSession = ((SslAuthenticationContext) context).session();
-            CertificateIdentity identity = this.certificateIdentifier.getIdentity(sslSession);
+            CertificateIdentity identity;
+            if (sslSession.getValue("CertificateIdentity") == null) {
+                identity = this.certificateIdentifier.getIdentity(sslSession);
+                sslSession.putValue("CertificateIdentity", identity);
+            } else {
+                identity = (CertificateIdentity) sslSession.getValue("CertificateIdentity");
+            }
             return new AzPubSubPrincipal(
                     AzPubSubPrincipal.USER_TYPE,
                     identity.principalName(),

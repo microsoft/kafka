@@ -57,6 +57,7 @@ object AclAuthorizer {
   // Semi-colon separated list of users that will be treated as super users and will have access to all the resources
   // for all actions from all hosts, defaults to no super users.
   val SuperUsersProp = "super.users"
+  val DeniedUsersProp = "denied.users"
   // If set to true when no acls are found for a resource, authorizer allows access to everyone. Defaults to false.
   val AllowEveryoneIfNoAclIsFoundProp = "allow.everyone.if.no.acl.found"
 
@@ -122,6 +123,7 @@ object AclAuthorizer {
 class AclAuthorizer extends Authorizer with Logging {
   private[security] val authorizerLogger = Logger("kafka.authorizer.logger")
   private var superUsers = Set.empty[KafkaPrincipal]
+  private var deniedUsers = Set.empty[KafkaPrincipal]
   private var shouldAllowEveryoneIfNoAclIsFound = false
   private var zkClient: KafkaZkClient = _
   private var aclChangeListeners: Iterable[AclChangeSubscription] = Iterable.empty
@@ -147,6 +149,9 @@ class AclAuthorizer extends Authorizer with Logging {
     configs.foreach { case (key, value) => props.put(key, value.toString) }
 
     superUsers = configs.get(AclAuthorizer.SuperUsersProp).collect {
+      case str: String if str.nonEmpty => str.split(";").map(s => SecurityUtils.parseKafkaPrincipal(s.trim)).toSet
+    }.getOrElse(Set.empty[KafkaPrincipal])
+    deniedUsers = configs.get(AclAuthorizer.DeniedUsersProp).collect {
       case str: String if str.nonEmpty => str.split(";").map(s => SecurityUtils.parseKafkaPrincipal(s.trim)).toSet
     }.getOrElse(Set.empty[KafkaPrincipal])
 
@@ -354,7 +359,7 @@ class AclAuthorizer extends Authorizer with Logging {
     }
 
     // Evaluate if operation is allowed
-    val authorized = isSuperUser(principal) || aclsAllowAccess
+    val authorized = !isDeniedUser(principal) && (isSuperUser(principal) || aclsAllowAccess)
 
     logAuditMessage(requestContext, action, authorized)
     if (authorized) AuthorizationResult.ALLOWED else AuthorizationResult.DENIED
@@ -363,6 +368,13 @@ class AclAuthorizer extends Authorizer with Logging {
   def isSuperUser(principal: KafkaPrincipal): Boolean = {
     if (superUsers.contains(principal)) {
       authorizerLogger.debug(s"principal = $principal is a super user, allowing operation without checking acls.")
+      true
+    } else false
+  }
+
+  def isDeniedUser(principal: KafkaPrincipal): Boolean = {
+    if (deniedUsers.contains(principal)) {
+      authorizerLogger.debug(s"principal = $principal is a denied user, denying operation without checking acls.")
       true
     } else false
   }

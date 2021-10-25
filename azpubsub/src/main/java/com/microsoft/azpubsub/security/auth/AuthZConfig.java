@@ -16,6 +16,8 @@
  */
 package com.microsoft.azpubsub.security.auth;
 
+import java.util.Set;
+
 /*
  * Interface retrieve the AuthZ Enable/Disable flag for Topic
  */
@@ -23,4 +25,6 @@ public interface AuthZConfig {
     public void configure() throws Exception;
 
     public boolean isDisabled(String topic);
+
+    public Set<String> getDeniedUsers();
 }

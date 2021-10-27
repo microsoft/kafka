@@ -26,5 +26,7 @@ public interface AuthZConfig {
 
     public boolean isDisabled(String topic);
 
+    public boolean isAnonymousBlocked(String topic);
+
     public Set<String> getDeniedUsers();
 }

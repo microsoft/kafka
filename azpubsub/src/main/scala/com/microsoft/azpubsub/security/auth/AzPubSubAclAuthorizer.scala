@@ -81,7 +81,7 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging {
           aclAuthorizerLogger.warn(s"Principal role $role is in the denied.users")
         }
       }
-    } else if (!deniedUsers.contains(requestContext.principal().getName) && super.authorize(requestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
+    } else if (!authZConfig.isAnonymousBlocked(resource.name) && super.authorize(requestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
       authorizerStats.allStats(action, principalName).successRate.mark()
       return AuthorizationResult.ALLOWED
     }

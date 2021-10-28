@@ -40,6 +40,8 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging {
     val resource = action.resourcePattern
     val sessionPrincipal = requestContext.principal
     var principalName = sessionPrincipal.getName
+    val deniedUsers = authZConfig.getDeniedUsers
+
     if (classOf[AzPubSubPrincipal] == sessionPrincipal.getClass) {
       val principal = sessionPrincipal.asInstanceOf[AzPubSubPrincipal]
       principalName = principal.getPrincipalName
@@ -68,14 +70,18 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging {
     if (classOf[AzPubSubPrincipal] == sessionPrincipal.getClass) {
       val principal = sessionPrincipal.asInstanceOf[AzPubSubPrincipal]
       for (role <- principal.getRoles.asScala) {
+        val deniedRole = deniedUsers.contains(role)
         val claimPrincipal = new KafkaPrincipal(principal.getPrincipalType(), role)
         val claimRequestContext = getClaimRequestContext(requestContext, claimPrincipal)
-        if (super.authorize(claimRequestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
+        if (!deniedRole && super.authorize(claimRequestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
           authorizerStats.allStats(action, claimPrincipal.getName).successRate.mark()
           return AuthorizationResult.ALLOWED
         }
+        if (deniedRole) {
+          aclAuthorizerLogger.warn(s"Principal role $role is in the denied.users")
+        }
       }
-    } else if (super.authorize(requestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
+    } else if (!authZConfig.isAnonymousBlocked(resource.name) && super.authorize(requestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
       authorizerStats.allStats(action, principalName).successRate.mark()
       return AuthorizationResult.ALLOWED
     }

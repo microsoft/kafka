@@ -71,7 +71,7 @@ class AuthenticatorStats {
     private val stats = new Pool[String, AuthenticatorMetrics]
 
     def allStats(identity: String, authType: String): AuthenticatorMetrics = {
-        val identityStr = identity.replaceAll(",", "_").replaceAll("\\\\\\\\", "_").replaceAll("\\\\", "_")
+        val identityStr = identity.replaceAll(",", "_").replaceAll(":", "_").replaceAll("\\\\\\\\", "_").replaceAll("\\\\", "_").replaceAll("//", "_").replaceAll("/", "_")
         val tags: scala.collection.Map[String, String] = Map("auth-type" -> authType, "identity" -> identityStr)
 
         val key = authType + identityStr

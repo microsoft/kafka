@@ -148,7 +148,7 @@ class AuthorizerStats {
     val resourceType = action.resourcePattern.resourceType.toString
     val operation = action.operation.toString
 
-    val identityStr = identity.replaceAll(",", "_").replaceAll("\\\\\\\\", "_").replaceAll("\\\\", "_")
+    val identityStr = identity.replaceAll(",", "_").replaceAll(":", "_").replaceAll("\\\\\\\\", "_").replaceAll("\\\\", "_").replaceAll("//", "_").replaceAll("/", "_")
     val tags: scala.collection.Map[String, String] = Map("resource-name" -> resourceName, "resource-type" -> resourceType,
       "operation" -> operation, "identity" -> identityStr)
 

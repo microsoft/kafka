@@ -32,6 +32,9 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging {
     super.configure(javaConfigs)
   }
 
+  override def logAuditMessage(requestContext: AuthorizableRequestContext, action: Action, authorized: Boolean): Unit = {
+  }
+
   override def authorize(requestContext: AuthorizableRequestContext, actions: util.List[Action]): util.List[AuthorizationResult] = {
     actions.asScala.map { action => this.authorizeAction(requestContext, action) }.asJava
   }
@@ -51,6 +54,7 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging {
       aclAuthorizerLogger.debug(s"AuthZ is disabled for resource: $resource")
       authorizerStats.allStats(action, principalName).successRate.mark()
       authorizerStats.allStats(action, principalName).disabledRate.mark()
+      super.logAuditMessage(requestContext, action, true)
       return AuthorizationResult.ALLOWED
     }
 
@@ -75,6 +79,7 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging {
         val claimRequestContext = getClaimRequestContext(requestContext, claimPrincipal)
         if (!deniedRole && super.authorize(claimRequestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
           authorizerStats.allStats(action, claimPrincipal.getName).successRate.mark()
+          super.logAuditMessage(claimRequestContext, action, true)
           return AuthorizationResult.ALLOWED
         }
         if (deniedRole) {
@@ -83,10 +88,12 @@ class AzPubSubAclAuthorizer extends AclAuthorizer with Logging {
       }
     } else if (!authZConfig.isAnonymousBlocked(resource.name) && super.authorize(requestContext, List(action).asJava).asScala.head == AuthorizationResult.ALLOWED) {
       authorizerStats.allStats(action, principalName).successRate.mark()
+      super.logAuditMessage(requestContext, action, true)
       return AuthorizationResult.ALLOWED
     }
 
     authorizerStats.allStats(action, principalName).failureRate.mark()
+    super.logAuditMessage(requestContext, action, false)
     return AuthorizationResult.DENIED
   }
 }

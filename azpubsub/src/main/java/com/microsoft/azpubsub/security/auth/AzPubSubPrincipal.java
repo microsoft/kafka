@@ -43,6 +43,11 @@ public class AzPubSubPrincipal extends KafkaPrincipal {
     }
 
     @Override
+    public String toString() {
+        return getPrincipalType() + ":" + this.principalStr;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (!(o instanceof AzPubSubPrincipal)) return false;
         if (!super.equals(o)) return false;
